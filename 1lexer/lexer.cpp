@@ -18,21 +18,21 @@ Scanner::~Scanner() {
   if(fileObj != nullptr)
   {
     printf("文件还未全部读入并扫描！filePath=%s", fileSrcPath);
-    fclose(filePath);
+    fclose(fileObj);
     fileObj = nullptr;
   }
 }
 
 char Scanner::GetNext() {
   if (fileObj == nullptr) {
-    return EOF;
+    return FILE_EOF;
   }
   // 如果缓冲区没有可读入的字符了，则从文件里读入
   if (bufInd == currBufLen - 1) {
     currBufLen = fread(srcBuf, CHAR_SIZE, BUF_LEN, fileObj); // 读入文件字符到缓冲区
     if (currBufLen == 0) { // 无可再读入的内容
       currBufLen = 1; // 标记缓冲区还剩最后一个字节，内容是文件结束标记EOF
-      srcBuf[0] = EOF;
+      srcBuf[0] = FILE_EOF;
     }
     bufInd = INVALID_INDEX; // 每次读入内容后，缓冲区索引复位
   }
@@ -42,7 +42,7 @@ char Scanner::GetNext() {
     // 如果是新行，则当前行号+1，当前列号为0
     rowNum++;
     colNum = 0;
-  } else if (currChar == EOF) {
+  } else if (currChar == FILE_EOF) {
     // 文件结束符号, 则可关闭文件了
     fclose(fileObj);
     fileObj == nullptr;
@@ -56,6 +56,25 @@ char Scanner::GetNext() {
 /*
 Scanner类函数结束
 */
+
+unordered_map<string, TokenTag> Keywords::tagMap = {
+    {"int", TokenTag::KW_INT},
+    {"char", TokenTag::KW_CHAR},
+    {"void", TokenTag::KW_VOID},
+    {"extern", TokenTag::KW_EXTERN},
+    {"if", TokenTag::KW_IF},
+    {"else", TokenTag::KW_ELSE},
+    {"switch", TokenTag::KW_SWITCH},
+    {"case", TokenTag::KW_CASE},
+    {"default", TokenTag::KW_DEFAULT},
+    {"while", TokenTag::KW_WHILE},
+    {"do", TokenTag::KW_DO},
+    {"for", TokenTag::KW_FOR},
+    {"break", TokenTag::KW_BREAK},
+    {"continue", TokenTag::KW_CONTINUE},
+    {"return", TokenTag::KW_RETURN}
+  };
+
 
 bool IsBlankCharacter(char c) {
   return c == ' ' || c == '\n' || c == '\t';
@@ -74,9 +93,9 @@ Token *Lexer::ScanIdToken() {
   do {
     name.push_back(currChar); // 记录下当前字符
     currChar = scan.GetNext();
-  } while (IsIdCharacter(currChar))
+  } while (IsIdCharacter(currChar));
   // 直到找到当前字符不再是标识符字符，当前name构成一个TokenId
-  TokenTag tag = keywords.getTokenTag(name); // 如果找到了，不为ID则为关键字
+  const TokenTag tag = keywords.getTokenTag(name); // 如果找到了，不为ID则为关键字
   if (tag == TokenTag::ID) {
     return new TokenId(name);
   } else {
@@ -89,10 +108,10 @@ Token *Lexer::ScanStrToken() {
   do {
     str.push_back(currChar);
     currChar = scan.GetNext();
-    if (currChar == EOF || currChar == '\n') {
+    if (currChar == FILE_EOF || currChar == '\n') {
       // 如果一直到文件结尾或者中间出现换行，则字符串有错误
       LEXERROR(STR_NO_RIGHT_QUTION);
-			return new Token(ERR);
+			return new Token(TokenTag::ERROR);
     } else if (currChar == '\\') { // 遇到转义字符或字符串手动换行
       currChar = scan.GetNext();
       if (currChar == 'n') { str.push_back('\n'); } //换行符
@@ -101,22 +120,22 @@ Token *Lexer::ScanStrToken() {
       else if (currChar == 't') { str.push_back('\t'); } // \t符
       else if (currChar == '0') { str.push_back('\0'); } // \0空
       else if (currChar == '\n') ; // 使用\给字符串换行
-      else if (currChar == EOF) {
+      else if (currChar == FILE_EOF) {
         LEXERROR(STR_NO_RIGHT_QUTION);
-        return new Token(ERR);
+        return new Token(TokenTag::ERROR);
       } else { str.push_back(currChar); } // 其他字符被转义，则可能为文法错误
     }
-  } while(currChar != '\"')
+  } while(currChar != '\"');
   return new TokenStr(str);
 }
 
 Token& Lexer::GetNextToken() {
-  while (currChar != EOF) {
-    while (IsBlankCharacter(tmpToken)) {
+  while (currChar != FILE_EOF) {
+    while (IsBlankCharacter(currChar)) {
       currChar = scan.GetNext();
     }
     // 识别标识符、关键字（特殊的标识符）
-    if (IsStartIdCharacter(c)) {
+    if (IsStartIdCharacter(currChar)) {
       return *ScanIdToken(); // 调用私有函数，这样代码更简洁，结构更清晰，扫描出当前标识符
     } else if (currChar == '\"') { // 如果是"开头，则是字符串常量
       return *ScanStrToken(); // 识别出整个字符串常量

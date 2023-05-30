@@ -20,5 +20,8 @@ string TokenNum::toString()
 
 string TokenChar::toString()
 {
-	return string("[") + Token::toString() + string("]") + string(val);
+	string ret = string("[") + Token::toString() + string("]");
+	ret.append((const char*)&val);
+	return  ret;
 }
+

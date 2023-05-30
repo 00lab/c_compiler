@@ -26,9 +26,9 @@
 #include<string>
 #include "token.h"
 
-#define INVALID_INDEX
+#define INVALID_INDEX -1
 #define INVALID_CHAR -1
-#define EOF -1
+#define FILE_EOF -1
 
 enum LexError
 {
@@ -69,60 +69,63 @@ private:
   int bufInd; // 当前读入文件字符的位置
 
   int rowNum; // 行号
-  int colNum // 列号
+  int colNum; // 列号
 };
 
 
 class Keywords {
 public:
-  Keywords() {};
+  Keywords() {}
+  ~Keywords() {}
 //重载operator<<的操作符，使Tag支持<<输出
 // std::ostream & operator<<(std::ostream &os,const error_code &ec)
 //  {
 //    os<<static_cast<std::underlying_type<Tag>::type>(ec);
 //    return os;
 //  }
-  TokenTag getTokenTag(string srcStr) {
-    return tagMap.find(srcStr) != tagMap.end() ? tagMap[srcStr] : TokenTag:ID;
+  const TokenTag getTokenTag(string srcStr) {
+    return tagMap.find(srcStr) != tagMap.end() ? tagMap[srcStr] : TokenTag::ID;
   }
 
-private:
+
   //关键字添加至该列表中
-  static const unordered_map<string, TokenTag> tagMap = {
-    "int" : TokenTag::KW_INT,
-    "char" : TokenTag::KW_CHAR,
-    "void" : TokenTag::KW_VOID,
-    "extern" : TokenTag::KW_EXTERN,
-    "if" : TokenTag::KW_IF,
-    "else" : TokenTag::KW_ELSE,
-    "switch" : TokenTag::KW_SWITCH,
-    "case" : TokenTag::KW_CASE,
-    "default" : TokenTag::KW_DEFAULT,
-    "while" : TokenTag::KW_WHILE,
-    "do" : TokenTag::KW_DO,
-    "for" : TokenTag::KW_FOR,
-    "break" : TokenTag::KW_BREAK,
-    "continue" : TokenTag::KW_CONTINUE,
-    "return" : TokenTag::KW_RETURN
-  };
+  static unordered_map<string, TokenTag> tagMap;
+  //  = {
+  //   {"int", TokenTag::KW_INT},
+  //   // "char" : TokenTag::KW_CHAR,
+  //   // "void" : TokenTag::KW_VOID,
+  //   // "extern" : TokenTag::KW_EXTERN,
+  //   // "if" : TokenTag::KW_IF,
+  //   // "else" : TokenTag::KW_ELSE,
+  //   // "switch" : TokenTag::KW_SWITCH,
+  //   // "case" : TokenTag::KW_CASE,
+  //   // "default" : TokenTag::KW_DEFAULT,
+  //   // "while" : TokenTag::KW_WHILE,
+  //   // "do" : TokenTag::KW_DO,
+  //   // "for" : TokenTag::KW_FOR,
+  //   // "break" : TokenTag::KW_BREAK,
+  //   // "continue" : TokenTag::KW_CONTINUE,
+  //   {"return", TokenTag::KW_RETURN}
+  // };
 };
 
-
+#define STR_NO_RIGHT_QUTION 1
 #define LEXERROR(code) printf("lexError, %u", (code))
 
 class Lexer {
 public:
   Lexer(Scanner &scan) : scan(scan), currChar('\0'), token(nullptr) {}
-  ~Lexer();
+  ~Lexer() {}
   Token& GetNextToken(); // 词法记号解析，有限自动机匹配
 private:
   Token *ScanIdToken();
   Token *ScanStrToken();
 
-  static Keywords keywords;
+  Keywords keywords;
   Scanner &scan;
   char currChar;
   bool readChar(char);
-  Tocken &token;
+  Token *token;
 };
 #endif
+

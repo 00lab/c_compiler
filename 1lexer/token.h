@@ -4,6 +4,8 @@
 #include <string>
 #include "common.h"
 
+using namespace std;
+
 /*
 	词法记号标签
 */
@@ -59,7 +61,7 @@ enum class TokenTag
   KW_RETURN
 };
 
-static const char *TokenTagName
+static const char *TokenTagName[] =
 {
 	"ERROR", // 错误，异常
 	"文件结尾", // 文件结束标记
@@ -114,16 +116,16 @@ static const char *TokenTagName
 class Token {
 public:
 	TokenTag tag;
-	Token(TokenTag t) tag(t) {}
-	virtual string toString() { return TokenTagName[static_cast<UINT32>(tag)]}
-	virtual ~Token ();
+	Token(TokenTag t) : tag(t) {}
+	virtual string toString() { return TokenTagName[static_cast<UINT32>(tag)]; }
+	virtual ~Token () {}
 };
 
 // 标识符
 class TokenId : public Token {
 public:
   string name;
-  Id(string idName) : name(idName) {}
+  TokenId(string idName) : Token(TokenTag::ID), name(idName) {}
   virtual string toString();
 };
 
@@ -131,7 +133,7 @@ public:
 class TokenNum : public Token {
 public:
   int val;
-  Num(int v) : val(v) {}
+  TokenNum(int v) : Token(TokenTag::NUM), val(v) {}
   virtual string toString();
 };
 
@@ -139,15 +141,16 @@ public:
 class TokenStr : public Token {
 public:
   string val;
-  Str(string s) : val(s) {}
+  TokenStr(string s) : Token(TokenTag::STR), val(s) {}
   virtual string toString();
-}
+};
 
 // 字符
 class TokenChar : public Token {
 public:
   char val;
-  TokenChar(char c) : val(c) {}
+  TokenChar(char c) : Token(TokenTag::CH), val(c) {}
   virtual string toString();
-}
+};
 #endif
+

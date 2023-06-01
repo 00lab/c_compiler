@@ -1,5 +1,5 @@
 #include <iostream>
 
 int main() {
-  std::cout << "lexer start\n";
+  LOG_INFO("lexer start\n");
 }

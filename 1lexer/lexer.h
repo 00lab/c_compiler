@@ -23,24 +23,14 @@
 
 #include <stdio.h>
 #include <unordered_map>
-#include<string>
+#include <string>
 #include "token.h"
+
+using namespace std;
 
 #define INVALID_INDEX -1
 #define INVALID_CHAR -1
 #define FILE_EOF -1
-
-enum LexError
-{
-	STR_NO_R_QUTION,		//字符串没有右引号
-	NUM_BIN_TYPE,				//2进制数没有实体数据
-	NUM_HEX_TYPE,				//16进制数没有实体数据
-	CHAR_NO_R_QUTION,		//字符没有右引号
-	CHAR_NO_DATA,				//字符没有数据
-	OR_NO_PAIR,					//||只有一个|
-	COMMENT_NO_END,			//多行注释没有正常结束
-	TOKEN_NO_EXIST			//不存在的词法记号
-};
 
 /*
 以下是Scanner类的函数声明，主要功能是打开并读入代码源文件内容，提供给词法分析器生成Tocken流
@@ -56,6 +46,21 @@ public:
   int GetRowNum() { return rowNum; }
   // 获取当前列号
   int GetColNum() { return colNum; }
+  void GetSrcFileScanInfo(char **fileName, int *row, int *col) {
+    *fileName = fileSrcPath;
+    *row = rowNum;
+    *col = colNum;
+  }
+  string GetSrcFileScanInfo() {
+    string ss(fileSrcPath);
+    ss += ":";
+    ss.push_back(rowNum);
+    ss += "行";
+    ss.push_back(colNum);
+    ss += "列 ";
+    return ss;
+  }
+
 
 private:
   char *fileSrcPath; // 输入的源文件路径与文件名
@@ -109,23 +114,52 @@ public:
   // };
 };
 
-#define STR_NO_RIGHT_QUTION 1
-#define LEXERROR(code) printf("lexError, %u", (code))
+enum class LEX_ERR {
+  CHAR_NO_R_QUTION,		// 字符缺少右引号
+  CHAR_NO_DATA,				// 字符缺少数据
+  STR_NO_R_QUTION,		// 字符串缺少右引号
+  NUM_BIN_NO_DATA,		// 2进制数缺少数据实体
+  NUM_HEX_NO_DATA,		// 16进制数缺少数据实体
+  NUM_ILLEGAL,        // 数字不合法
+  OP_OR_NO_PAIR,			// ||只有一个|
+  COMMENT_NO_END,			// 多行注释缺少结束符
+  TOKEN_UNKNOW			  // 符号未识别
+};
+
+#define LEXERROR(errType) CodeErrInfo::GetThis().LexerErr(scan.GetSrcFileScanInfo().c_str(), lexErr[(errType)].c_str());
 
 class Lexer {
 public:
-  Lexer(Scanner &scan) : scan(scan), currChar('\0'), token(nullptr) {}
+  Lexer(Scanner &scan) : scan(scan), currChar('\0'), token(nullptr) {
+    lexErr = {
+      {LEX_ERR::CHAR_NO_R_QUTION, "字符缺少右引号"},
+      {LEX_ERR::CHAR_NO_DATA, "字符缺少数据"},
+      {LEX_ERR::STR_NO_R_QUTION, "字符串缺少右引号"},
+      {LEX_ERR::NUM_BIN_NO_DATA, "2进制数缺少数据实体"},
+      {LEX_ERR::NUM_HEX_NO_DATA, "16进制数缺少数据实体"},
+      {LEX_ERR::NUM_HEX_NO_DATA, "16进制数缺少数据实体"},
+      {LEX_ERR::NUM_ILLEGAL, "数字不合法"},
+      {LEX_ERR::OP_OR_NO_PAIR, "||只有一个|"},
+      {LEX_ERR::COMMENT_NO_END, "多行注释缺少结束符"},
+      {LEX_ERR::TOKEN_UNKNOW, "符号未识别"}
+    };
+  }
   ~Lexer() {}
-  Token& GetNextToken(); // 词法记号解析，有限自动机匹配
+  Token *GetNextToken(); // 词法记号解析，有限自动机匹配
 private:
   Token *ScanIdToken();
   Token *ScanStrToken();
+  Token *ScanNumToken();
+  Token *ScanCharToken();
+  Token *ScanDelimiterToken();
 
   Keywords keywords;
   Scanner &scan;
   char currChar;
   bool readChar(char);
   Token *token;
+  unordered_map<LEX_ERR, string> lexErr;
 };
+
 #endif
 

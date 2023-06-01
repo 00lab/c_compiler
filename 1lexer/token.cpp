@@ -1,26 +1,26 @@
 #include <sstream>
 #include "token.h"
 
-string TokenId::toString()
+string TokenId::ToString()
 {
-	return Token::toString() + name;
+	return Token::ToString() + name;
 }
 
-string TokenStr::toString()
+string TokenStr::ToString()
 {
-	return string("[") + Token::toString() + string("]") + val;
+	return string("[") + Token::ToString() + string("]") + val;
 }
 
-string TokenNum::toString()
+string TokenNum::ToString()
 {
 	stringstream ss;
 	ss << val;
-	return string("[") + Token::toString() + string("]") + ss.str();
+	return string("[") + Token::ToString() + string("]") + ss.str();
 }
 
-string TokenChar::toString()
+string TokenChar::ToString()
 {
-	string ret = string("[") + Token::toString() + string("]");
+	string ret = string("[") + Token::ToString() + string("]");
 	ret.append((const char*)&val);
 	return  ret;
 }

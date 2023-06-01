@@ -1,15 +1,17 @@
-#ifndef LOG_H
-#define LOG_H
+#ifndef _LOG__H
+#define _LOG__H
 
 #include <iostream>
 #include <fstream>
 
-namespace cc {
+
+#define MAX_LOG_STR_SIZE 1024
+#define LOG_PREFIX "[cc]"
 
 /// needed by printer, to offer some special identification characters
 enum class SpecialChar { NEW_LINE, SPACE };
 
-/// printer provides print functions, can print the eIR to file.txt or screen.
+// printer provides print functions, can print the eIR to file.txt or screen.
 class Printer {
 private:
   /// the output stream instance, a polymorphic obj
@@ -34,6 +36,42 @@ public:
   SpecialChar NewLine();
 };
 
-}  // end namespace cc
+class Log {
+public:
+  static void LogPrinter(char const *prefix, char const *levelStr, char const *func, char const *pcFmt, ...);
+};
+
+
+#define LOG_INFO(pcFmt, args...) \
+do { \
+  Log::LogPrinter(LOG_PREFIX, "[INFO]", __func__, pcFmt, ##args); \
+} while (0)
+
+#define LOG_WARN(pcFmt, args...) \
+do { \
+  Log::LogPrinter(LOG_PREFIX, "[WARN]", __func__, pcFmt, ##args); \
+} while (0)
+
+#define LOG_ERR(pcFmt, args...) \
+do { \
+  Log::LogPrinter(LOG_PREFIX, "[ERROR]", __func__, pcFmt, ##args); \
+} while (0)
+
+
+#define PDEBUG(fmt, args...) printf(fmt, ##args)
+
+class CodeErrInfo {
+public:
+  void LexerErr(char *pcFmt, ...);
+  void GetErrNum();
+  void GetWarnNum();
+
+private:
+  CodeErrInfo() {}
+  static CodeErrInfo obj;
+  int errNum;
+  int warnNum;
+};
+
 
 #endif

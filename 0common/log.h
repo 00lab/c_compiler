@@ -3,10 +3,14 @@
 
 #include <iostream>
 #include <fstream>
-
+#include "common.h"
 
 #define MAX_LOG_STR_SIZE 1024
 #define LOG_PREFIX "[cc]"
+#define CODE_ERR_PREFIX "[code]"
+#define COMP_NM_LEXER "[lex]"
+#define COMP_NM_SYNTAX "[syntax]"
+#define COMP_NM_SEMANTIC "[semantic]"
 
 /// needed by printer, to offer some special identification characters
 enum class SpecialChar { NEW_LINE, SPACE };
@@ -62,13 +66,23 @@ do { \
 
 class CodeErrInfo {
 public:
-  void LexerErr(char *pcFmt, ...);
+  void LexerErr(char const *srcFileInfoStr, char const *errMsg);
   void GetErrNum();
   void GetWarnNum();
+  static CodeErrInfo &GetThis() {
+    static CodeErrInfo *obj;
+    if (obj == nullptr) {
+      obj == new CodeErrInfo();
+    }
+    return *obj;
+  }
 
 private:
   CodeErrInfo() {}
-  static CodeErrInfo obj;
+  ~CodeErrInfo() {}
+  void PrintCodeLog(GetSrcFileInfoFuncType GetSrcFileInfo, char const *compName, char const *pcFmt, ...);
+  void PrintCodeLog(const char *srcFileInfoStr, char const *compName, char const *pcFmt, ...);
+  Printer print;
   int errNum;
   int warnNum;
 };

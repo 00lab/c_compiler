@@ -1,5 +1,6 @@
 
 #include "lexer.h"
+#include "log.h"
 
 /*
 以下是Scanner类的函数实现，主要功能是打开并读入代码源文件内容，提供给词法分析器生成Tocken流
@@ -8,7 +9,7 @@ Scanner::Scanner(char *filePath) : fileSrcPath(filePath), lastChar('\0'), currBu
                                    bufInd(INVALID_INDEX), rowNum(0), colNum(0) {
   fileObj = fopen(filePath, "r"); // 打开源文件
   if (fileObj == nullptr) {
-    printf("源文件打开失败, 请检查文件是否存在! filePath=%s", filePath);
+    LOG_ERR("源文件打开失败, 请检查文件是否存在! filePath=%s", filePath);
   }
 	//初始化扫描状态
   srcBuf[BUF_LEN] = {0}; // 读入文件内容缓冲区
@@ -17,7 +18,7 @@ Scanner::Scanner(char *filePath) : fileSrcPath(filePath), lastChar('\0'), currBu
 Scanner::~Scanner() {
   if(fileObj != nullptr)
   {
-    printf("文件还未全部读入并扫描！filePath=%s", fileSrcPath);
+    LOG_ERR("文件还未全部读入并扫描！filePath=%s", fileSrcPath);
     fclose(fileObj);
     fileObj = nullptr;
   }
@@ -58,26 +59,27 @@ Scanner类函数结束
 */
 
 unordered_map<string, TokenTag> Keywords::tagMap = {
-    {"int", TokenTag::KW_INT},
-    {"char", TokenTag::KW_CHAR},
-    {"void", TokenTag::KW_VOID},
-    {"extern", TokenTag::KW_EXTERN},
-    {"if", TokenTag::KW_IF},
-    {"else", TokenTag::KW_ELSE},
-    {"switch", TokenTag::KW_SWITCH},
-    {"case", TokenTag::KW_CASE},
-    {"default", TokenTag::KW_DEFAULT},
-    {"while", TokenTag::KW_WHILE},
-    {"do", TokenTag::KW_DO},
-    {"for", TokenTag::KW_FOR},
-    {"break", TokenTag::KW_BREAK},
-    {"continue", TokenTag::KW_CONTINUE},
-    {"return", TokenTag::KW_RETURN}
-  };
+  {"int", TokenTag::KW_INT},
+  {"char", TokenTag::KW_CHAR},
+  {"void", TokenTag::KW_VOID},
+  {"extern", TokenTag::KW_EXTERN},
+  {"if", TokenTag::KW_IF},
+  {"else", TokenTag::KW_ELSE},
+  {"switch", TokenTag::KW_SWITCH},
+  {"case", TokenTag::KW_CASE},
+  {"default", TokenTag::KW_DEFAULT},
+  {"while", TokenTag::KW_WHILE},
+  {"do", TokenTag::KW_DO},
+  {"for", TokenTag::KW_FOR},
+  {"break", TokenTag::KW_BREAK},
+  {"continue", TokenTag::KW_CONTINUE},
+  {"return", TokenTag::KW_RETURN}
+};
+
 
 
 bool IsBlankCharacter(char c) {
-  return c == ' ' || c == '\n' || c == '\t';
+  return c == ' ' || c == '\n' || c == '\t' || c == '\r';
 }
 
 bool IsStartIdCharacter(char c) {
@@ -86,6 +88,14 @@ bool IsStartIdCharacter(char c) {
 
 bool IsIdCharacter(char c) {
   return IsStartIdCharacter(c) || (c >= '1' && c <= '9');
+}
+
+bool IsNumberCharacter(char c) {
+  return (c >= '0' && c <= '9');
+}
+
+bool IsHexNumCharacter(char c) {
+  return IsNumberCharacter(c) || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f');
 }
 
 Token *Lexer::ScanIdToken() {
@@ -110,7 +120,7 @@ Token *Lexer::ScanStrToken() {
     currChar = scan.GetNext();
     if (currChar == FILE_EOF || currChar == '\n') {
       // 如果一直到文件结尾或者中间出现换行，则字符串有错误
-      LEXERROR(STR_NO_RIGHT_QUTION);
+      LEXERROR(LEX_ERR::STR_NO_R_QUTION);
 			return new Token(TokenTag::ERROR);
     } else if (currChar == '\\') { // 遇到转义字符或字符串手动换行
       currChar = scan.GetNext();
@@ -121,7 +131,7 @@ Token *Lexer::ScanStrToken() {
       else if (currChar == '0') { str.push_back('\0'); } // \0空
       else if (currChar == '\n') ; // 使用\给字符串换行
       else if (currChar == FILE_EOF) {
-        LEXERROR(STR_NO_RIGHT_QUTION);
+        LEXERROR(LEX_ERR::STR_NO_R_QUTION);
         return new Token(TokenTag::ERROR);
       } else { str.push_back(currChar); } // 其他字符被转义，则可能为文法错误
     }
@@ -129,17 +139,76 @@ Token *Lexer::ScanStrToken() {
   return new TokenStr(str);
 }
 
-Token& Lexer::GetNextToken() {
+Token *Lexer::ScanNumToken() {
+  int val = 0;
+  if (currChar != '0') { // 说明是十进制
+    do {
+      val = val * 10 + currChar - '0';
+      currChar = scan.GetNext();
+    } while (IsNumberCharacter(currChar));
+    return new TokenNum(val);
+  }
+  currChar = scan.GetNext();
+  if (currChar == 'x') { // 识别为16进制
+    currChar = scan.GetNext();
+    if (!IsHexNumCharacter(currChar)) { // 下一个跟随的不是合法的16进制字符，则说明无数据
+      LEXERROR(LEX_ERR::NUM_HEX_NO_DATA);
+      return new Token(TokenTag::ERROR);
+    }
+    do {
+      val = val * 16;
+      if (IsNumberCharacter(currChar)) { // 如果是数字格式
+        val += currChar - '0';
+      } else if (currChar >= 'A' && currChar <= 'F') {
+        val += currChar - 'A';
+      } else if (currChar >= 'a' && currChar <= 'f') {
+        val += currChar - 'a';
+      } else { // 按理肯定不会进入此处
+        LOG_ERR("lexer解析16进制数据时异常，currChar=%c", currChar);
+        LEXERROR(LEX_ERR::NUM_HEX_NO_DATA);
+        return new Token(TokenTag::ERROR);
+      }
+    } while (IsHexNumCharacter(currChar));
+    return new TokenNum(val);
+  }
+  if (currChar == 'b') { // 二进制数据
+    currChar = scan.GetNext();
+    if (currChar != '0' && currChar != '1') { // 说明后边跟的不是正确的二进制数据
+        LEXERROR(LEX_ERR::NUM_BIN_NO_DATA);
+        return new Token(TokenTag::ERROR);
+    }
+    do {
+      val = val * 2 + val - '0';
+      currChar = scan.GetNext();
+    } while (currChar == '0' || currChar == '1');
+  }
+  // 如果是其他，则说明错了
+  LEXERROR(LEX_ERR::NUM_ILLEGAL);
+  return new Token(TokenTag::ERROR);
+}
+
+Token *Lexer::ScanCharToken() {
+  ;
+}
+
+Token *Lexer::ScanDelimiterToken() {
+  ;
+}
+
+Token *Lexer::GetNextToken() {
+  currChar = scan.GetNext();
   while (currChar != FILE_EOF) {
     while (IsBlankCharacter(currChar)) {
       currChar = scan.GetNext();
     }
     // 识别标识符、关键字（特殊的标识符）
     if (IsStartIdCharacter(currChar)) {
-      return *ScanIdToken(); // 调用私有函数，这样代码更简洁，结构更清晰，扫描出当前标识符
+      return ScanIdToken(); // 调用私有函数，这样代码更简洁，结构更清晰，扫描出当前标识符
     } else if (currChar == '\"') { // 如果是"开头，则是字符串常量
-      return *ScanStrToken(); // 识别出整个字符串常量
+      return ScanStrToken(); // 识别出整个字符串常量
+    } else if (IsNumberCharacter(currChar)) { // 如果是数字开头
+      return ScanNumToken();
     }
   }
-  
+  return new Token(TokenTag::END);
 }

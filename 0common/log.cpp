@@ -1,9 +1,31 @@
 #include <fstream>
+#include <stdio.h>
+#include <stdarg.h>
 #include "log.h"
 
-using namespace cc;
 
-/// common printing function, will print current indent after a new line
+// class Printer;
+void Log::LogPrinter(char const *prefix, char const *levelStr, char const *func, char const *pcFmt, ...)
+{
+  static Printer print;
+    int  iRet;
+    va_list pcArgs;
+    char acLogBuf[MAX_LOG_STR_SIZE] = {0};
+
+    /* 填充日志信息 */
+    va_start(pcArgs, pcFmt);
+    iRet = vsnprintf(acLogBuf, MAX_LOG_STR_SIZE - 1, (const char*)pcFmt, pcArgs);
+    va_end(pcArgs);
+    if (iRet < 0) {
+        return;
+    }
+
+    /* 写日志 */
+    print << prefix << levelStr << func << ":" << acLogBuf << print.NewLine();
+    return;
+}
+
+// common printing function, will print current indent after a new line
 template <class T>
 Printer &Printer::operator<<(const T &output) {
   if (needPrintIndent) {
@@ -35,4 +57,3 @@ void Printer::DecCurrentIndent() {
 }
 
 SpecialChar Printer::NewLine() { return SpecialChar::NEW_LINE; }
-

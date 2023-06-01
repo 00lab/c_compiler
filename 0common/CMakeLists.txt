@@ -11,4 +11,4 @@ target_include_directories(
 target_link_libraries(common_lib PUBLIC -Wl,-rpath-link=${DEPEND_LIB_PATH})
 
 # # make intall行为
-install(TARGETS common_lib RUNTIME DESTINATION lib)
+#install(TARGETS common_lib RUNTIME DESTINATION lib)

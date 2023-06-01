@@ -31,6 +31,9 @@ using namespace std;
 #define INVALID_INDEX -1
 #define INVALID_CHAR -1
 #define FILE_EOF -1
+#define VOS_OK 0
+#define VOS_ERR -1
+#define ERR_CHAR static_cast<char>(-1)
 
 /*
 以下是Scanner类的函数声明，主要功能是打开并读入代码源文件内容，提供给词法分析器生成Tocken流
@@ -40,7 +43,7 @@ class Scanner
 public:
   Scanner(char *filePath);
   ~Scanner();
-  char GetNext(); // 读取下一个字符
+  char GetNext(bool isTry=false); // 读取下一个字符, isTry用于试探看下一个字符是不是目标字符
   char *GetSrcFile() { return fileSrcPath; }
   // 获取当前行号
   int GetRowNum() { return rowNum; }

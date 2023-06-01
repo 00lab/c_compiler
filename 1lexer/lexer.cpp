@@ -24,7 +24,7 @@ Scanner::~Scanner() {
   }
 }
 
-char Scanner::GetNext() {
+char Scanner::GetNext(bool isTry) {
   if (fileObj == nullptr) {
     return FILE_EOF;
   }
@@ -36,6 +36,9 @@ char Scanner::GetNext() {
       srcBuf[0] = FILE_EOF;
     }
     bufInd = INVALID_INDEX; // 每次读入内容后，缓冲区索引复位
+  }
+  if (isTry) { // 默认为false，如遇到+号，则需要试看下一个是不是也是+号
+    return srcBuf[bufInd + 1];
   }
   bufInd++; // 读取缓冲区下一个位置
   char currChar = srcBuf[bufInd];
@@ -113,6 +116,16 @@ Token *Lexer::ScanIdToken() {
   }
 }
 
+char CheckEscapeChar(char currChar) {
+  if (currChar == 'n') { return '\n'; } //换行符
+  else if (currChar == '\\') { return '\\'; } // 反斜杠
+  else if (currChar == '\"') { return '\"'; } // 双引号
+  else if (currChar == 't') { return '\t'; } // \t符
+  else if (currChar == '0') { return  '\0'; } // \0空
+  else if (currChar == FILE_EOF) { return ERR_CHAR; }
+  return currChar; // 其他字符被转义，则可能为文法错误
+}
+
 Token *Lexer::ScanStrToken() {
   string str;
   do {
@@ -188,11 +201,55 @@ Token *Lexer::ScanNumToken() {
 }
 
 Token *Lexer::ScanCharToken() {
-  ;
+  char c;
+  currChar = scan.GetNext();
+  if (currChar == FILE_EOF || currChar == '\n') {
+    // 如果一直到文件结尾或者中间出现换行，则字符有错误
+    LEXERROR(LEX_ERR::CHAR_NO_R_QUTION);
+    return new Token(TokenTag::ERROR);
+  }
+  if (currChar == '\'') { // 空字符
+    LEXERROR(LEX_ERR::CHAR_NO_DATA);
+    return new Token(TokenTag::ERROR);
+  }
+  if (currChar == '\\') {
+    currChar = scan.GetNext();
+    char ret = CheckEscapeChar(currChar);
+    if (ret == ERR_CHAR) {
+      LEXERROR(LEX_ERR::CHAR_NO_R_QUTION);
+      return new Token(TokenTag::ERROR);
+    }
+    return new TokenChar(ret);
+  }
+  // 正常字符
+  char tmpChar = currChar;
+  currChar = scan.GetNext();
+  if (currChar != '\'') {
+    LEXERROR(LEX_ERR::CHAR_NO_R_QUTION);
+    return new Token(TokenTag::ERROR);
+  }
+  return new TokenChar(tmpChar);
 }
 
 Token *Lexer::ScanDelimiterToken() {
-  ;
+  if (currChar == '+') {
+    if (scan.GetNext(true) == '+') { //试读下一个字符看是不是+，如果是则为++
+      scan.GetNext();
+      return new Token(TokenTag::INC);
+    }
+    // 如果只是一个+，则不读下一个字符了
+    return new Token(TokenTag::ADD);
+  }
+  if (currChar == '-') {
+    if (scan.GetNext(true) == '-') {
+      scan.GetNext();
+      return new Token(TokenTag::DEC);
+    }
+    return new Token(TokenTag::SUB);
+  }
+  if (currChar == '*') { return new Token(TokenTag::MUL); }
+  if (currChar == '/') { return new Token(TokenTag::DIV); }
+  if (currChar == '%') { return new Token(TokenTag::MOD); }
 }
 
 Token *Lexer::GetNextToken() {
@@ -208,6 +265,10 @@ Token *Lexer::GetNextToken() {
       return ScanStrToken(); // 识别出整个字符串常量
     } else if (IsNumberCharacter(currChar)) { // 如果是数字开头
       return ScanNumToken();
+    } else if (currChar == '\'') {
+      return ScanCharToken();
+    } else { // check运算符等特殊字符
+      return ScanDelimiterToken();
     }
   }
   return new Token(TokenTag::END);

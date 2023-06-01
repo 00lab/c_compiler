@@ -12,7 +12,7 @@ target_include_directories(
 target_link_libraries(lexer_lib PUBLIC -Wl,-rpath-link=${DEPEND_LIB_PATH} common_lib)
 
 # # make intall行为
-install(TARGETS lexer_lib RUNTIME DESTINATION lib)
+#install(TARGETS lexer_lib RUNTIME DESTINATION lib)
 
 
 

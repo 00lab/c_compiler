@@ -58,7 +58,9 @@ enum class TokenTag
   KW_FOR, // for循环
   KW_BREAK, // break,continue,return
   KW_CONTINUE,
-  KW_RETURN
+  KW_RETURN,
+  BIT_OR, // 按位或 | , 按位与& 与 ADDR_OF形式上是一样的，靠语法支持
+  BIT_XOR // 异或
 };
 
 static const char *TokenTagName[] =
@@ -110,14 +112,16 @@ static const char *TokenTagName[] =
   "for", // for循环
   "break", // break,continue,return
   "continue",
-  "return"
+  "return",
+  "|", // 按位或 | , 按位与& 与 ADDR_OF形式上是一样的，靠语法支持
+  "^" // 异或
 };
 
 class Token {
 public:
 	TokenTag tag;
 	Token(TokenTag t) : tag(t) {}
-	virtual string ToString() { return TokenTagName[static_cast<UINT32>(tag)]; }
+	virtual string ToString() { return string("Token= ") + TokenTagName[static_cast<UINT32>(tag)]; }
 	virtual ~Token () {}
 };
 

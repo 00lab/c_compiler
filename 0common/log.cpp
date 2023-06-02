@@ -21,7 +21,7 @@ void Log::LogPrinter(char const *prefix, char const *levelStr, char const *func,
   }
 
   /* 写日志 */
-  print << prefix << levelStr << func << ":" << acLogBuf << print.NewLine();
+  print << prefix << levelStr << func << ": " << acLogBuf << print.NewLine();
   return;
 }
 

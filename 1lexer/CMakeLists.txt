@@ -13,7 +13,7 @@ target_link_libraries(lexer_lib PUBLIC -Wl,-rpath-link=${DEPEND_LIB_PATH} common
 
 # # make intall行为
 #install(TARGETS lexer_lib RUNTIME DESTINATION lib)
-
+install (TARGETS lexer_lib DESTINATION lib)
 
 
 add_executable(lexer_bin ${CMAKE_CURRENT_SOURCE_DIR}/main_lexer.cpp)

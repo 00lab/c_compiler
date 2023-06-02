@@ -49,7 +49,7 @@ char Scanner::GetNext(bool isTry) {
   } else if (currChar == FILE_EOF) {
     // 文件结束符号, 则可关闭文件了
     fclose(fileObj);
-    fileObj == nullptr;
+    fileObj = nullptr;
   } else {
     // 如果是其他除换行符外的普通字符，列号+1
     colNum++;
@@ -102,11 +102,13 @@ bool IsHexNumCharacter(char c) {
 }
 
 Token *Lexer::ScanIdToken() {
-  string name = "";
-  do {
-    name.push_back(currChar); // 记录下当前字符
+  string name;
+  name.push_back(currChar);
+  while (IsIdCharacter(scan.GetNext(true))) {
+    // 确认下一个字符还是标识符的一部分，则记录，否则不读入该字符，因为下一个字符可能是下一个标识符的开始
     currChar = scan.GetNext();
-  } while (IsIdCharacter(currChar));
+    name.push_back(currChar); // 记录下当前字符
+  }
   // 直到找到当前字符不再是标识符字符，当前name构成一个TokenId
   const TokenTag tag = keywords.getTokenTag(name); // 如果找到了，不为ID则为关键字
   if (tag == TokenTag::ID) {
@@ -153,12 +155,12 @@ Token *Lexer::ScanStrToken() {
 }
 
 Token *Lexer::ScanNumToken() {
-  int val = 0;
+  int val = currChar - '0';
   if (currChar != '0') { // 说明是十进制
-    do {
-      val = val * 10 + currChar - '0';
+    while (IsNumberCharacter(scan.GetNext(true))) {
       currChar = scan.GetNext();
-    } while (IsNumberCharacter(currChar));
+      val = val * 10 + currChar - '0';
+    }
     return new TokenNum(val);
   }
   currChar = scan.GetNext();
@@ -168,7 +170,8 @@ Token *Lexer::ScanNumToken() {
       LEXERROR(LEX_ERR::NUM_HEX_NO_DATA);
       return new Token(TokenTag::ERROR);
     }
-    do {
+    while (IsHexNumCharacter(scan.GetNext(true))) {
+      currChar = scan.GetNext();
       val = val * 16;
       if (IsNumberCharacter(currChar)) { // 如果是数字格式
         val += currChar - '0';
@@ -181,7 +184,7 @@ Token *Lexer::ScanNumToken() {
         LEXERROR(LEX_ERR::NUM_HEX_NO_DATA);
         return new Token(TokenTag::ERROR);
       }
-    } while (IsHexNumCharacter(currChar));
+    }
     return new TokenNum(val);
   }
   if (currChar == 'b') { // 二进制数据
@@ -190,10 +193,10 @@ Token *Lexer::ScanNumToken() {
         LEXERROR(LEX_ERR::NUM_BIN_NO_DATA);
         return new Token(TokenTag::ERROR);
     }
-    do {
-      val = val * 2 + val - '0';
+    while (scan.GetNext(true) == '0' || scan.GetNext(true) == '1') {
       currChar = scan.GetNext();
-    } while (currChar == '0' || currChar == '1');
+      val = val * 2 + val - '0';
+    }
   }
   // 如果是其他，则说明错了
   LEXERROR(LEX_ERR::NUM_ILLEGAL);
@@ -231,7 +234,36 @@ Token *Lexer::ScanCharToken() {
   return new TokenChar(tmpChar);
 }
 
+Token *Lexer::ScanLogicOpToken() {
+  char tryNextCh = scan.GetNext(true);
+  if (currChar == '=' && tryNextCh == '=') { scan.GetNext(); return new Token(TokenTag::EQU); }
+  if (currChar == '!' && tryNextCh == '=') { scan.GetNext(); return new Token(TokenTag::NEQU); }
+  if (currChar == '>' && tryNextCh == '=') { scan.GetNext(); return new Token(TokenTag::GE); }
+  if (currChar == '<' && tryNextCh == '=') { scan.GetNext(); return new Token(TokenTag::LE); }
+  if (currChar == '|' && tryNextCh == '|') { scan.GetNext(); return new Token(TokenTag::OR); }
+  if (currChar == '&' && tryNextCh == '&') { scan.GetNext(); return new Token(TokenTag::AND); }
+  if (currChar == '|') { return new Token(TokenTag::BIT_OR); }
+  if (currChar == '&') { return new Token(TokenTag::ADDR_OF); }
+  if (currChar == '^') { return new Token(TokenTag::BIT_XOR); }
+  if (currChar == '>') { return new Token(TokenTag::GT); }
+  if (currChar == '<') { return new Token(TokenTag::LT); }
+  if (currChar == '=') { return new Token(TokenTag::ASSIGN); }
+  if (currChar == '!') { return new Token(TokenTag::NOT); }
+  return nullptr; // 如果都不是则返回空，表示未识别
+}
+
 Token *Lexer::ScanDelimiterToken() {
+  // 括号等作用域
+  if (currChar == '(') { return new Token(TokenTag::LPAREN); } // 括号 (
+  if (currChar == ')') { return new Token(TokenTag::RPAREN); } // 括号 )
+  if (currChar == '[') { return new Token(TokenTag::LBRACK); } // []
+  if (currChar == ']') { return new Token(TokenTag::RBRACK); } 
+  if (currChar == '{') { return new Token(TokenTag::LBRACE); } // {}
+  if (currChar == '}') { return new Token(TokenTag::RBRACE); } 
+  if (currChar == ',') { return new Token(TokenTag::COMMA); } // 逗号,
+  if (currChar == ':') { return new Token(TokenTag::COLON); } // 冒号:
+  if (currChar == ';') { return new Token(TokenTag::SEMICON); } // 分号;
+  // 运算符
   if (currChar == '+') {
     if (scan.GetNext(true) == '+') { //试读下一个字符看是不是+，如果是则为++
       scan.GetNext();
@@ -250,6 +282,8 @@ Token *Lexer::ScanDelimiterToken() {
   if (currChar == '*') { return new Token(TokenTag::MUL); }
   if (currChar == '/') { return new Token(TokenTag::DIV); }
   if (currChar == '%') { return new Token(TokenTag::MOD); }
+  // 比较 与 逻辑运算符
+  return ScanLogicOpToken();
 }
 
 Token *Lexer::GetNextToken() {
@@ -268,7 +302,12 @@ Token *Lexer::GetNextToken() {
     } else if (currChar == '\'') {
       return ScanCharToken();
     } else { // check运算符等特殊字符
-      return ScanDelimiterToken();
+      Token *tmpT = ScanDelimiterToken();
+      if (tmpT != nullptr) { return tmpT; }
+      if (currChar != FILE_EOF) {
+        LEXERROR(LEX_ERR::TOKEN_UNKNOW);
+        return new Token(TokenTag::ERROR);
+      }
     }
   }
   return new Token(TokenTag::END);

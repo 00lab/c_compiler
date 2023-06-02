@@ -124,7 +124,6 @@ enum class LEX_ERR {
   NUM_BIN_NO_DATA,		// 2进制数缺少数据实体
   NUM_HEX_NO_DATA,		// 16进制数缺少数据实体
   NUM_ILLEGAL,        // 数字不合法
-  OP_OR_NO_PAIR,			// ||只有一个|
   COMMENT_NO_END,			// 多行注释缺少结束符
   TOKEN_UNKNOW			  // 符号未识别
 };
@@ -140,9 +139,7 @@ public:
       {LEX_ERR::STR_NO_R_QUTION, "字符串缺少右引号"},
       {LEX_ERR::NUM_BIN_NO_DATA, "2进制数缺少数据实体"},
       {LEX_ERR::NUM_HEX_NO_DATA, "16进制数缺少数据实体"},
-      {LEX_ERR::NUM_HEX_NO_DATA, "16进制数缺少数据实体"},
       {LEX_ERR::NUM_ILLEGAL, "数字不合法"},
-      {LEX_ERR::OP_OR_NO_PAIR, "||只有一个|"},
       {LEX_ERR::COMMENT_NO_END, "多行注释缺少结束符"},
       {LEX_ERR::TOKEN_UNKNOW, "符号未识别"}
     };
@@ -155,6 +152,7 @@ private:
   Token *ScanNumToken();
   Token *ScanCharToken();
   Token *ScanDelimiterToken();
+  Token *ScanLogicOpToken();
 
   Keywords keywords;
   Scanner &scan;

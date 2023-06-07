@@ -16,7 +16,7 @@ target_link_libraries(parser_lib PUBLIC -Wl,-rpath-link=${DEPEND_LIB_PATH} commo
 install (TARGETS parser_lib DESTINATION lib)
 
 
-add_executable(parser_bin ${CMAKE_CURRENT_SOURCE_DIR}/main_lexer.cpp)
+add_executable(parser_bin ${CMAKE_CURRENT_SOURCE_DIR}/main_paser.cpp)
 # add_executable(lexer_bin ${SRC_LIST})
 
 target_include_directories(

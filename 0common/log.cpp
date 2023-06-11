@@ -96,3 +96,8 @@ void CodeErrInfo::LexerErr(const char *srcFileInfoStr, const char *errMsg) {
   PrintCodeLog(srcFileInfoStr, COMP_NM_LEXER, errMsg);
   errNum++;
 }
+
+void CodeErrInfo::SyntaxErr(const char *srcFileInfoStr, const char *errMsg) {
+  PrintCodeLog(srcFileInfoStr, COMP_NM_SYNTAX, errMsg);
+  errNum++;
+}

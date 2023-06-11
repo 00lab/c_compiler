@@ -1,5 +1,36 @@
 #include "parser.h"
 
+void Paser::SyntaxErrLog(SyntaxErr errTypeCode, Token *t)
+{
+	//语法错误信息串
+	static const char *synErrInfo[]=
+	{
+		"类型",
+		"标识符",
+		"数组长度",
+		"常量",
+		"逗号",
+		"分号",
+		"=",
+		"冒号",
+		"while",
+		"(",
+		")",
+		"[",
+		"]",
+		"{",
+		"}"
+	};
+  int index = static_cast<int>(errTypeCode);
+	if(index % 2 == 0) // 表示Token丢失
+    CodeErrInfo::GetThis().SyntaxErr(scan.GetSrcFileScanInfo().c_str(), lexErr[(errType)].c_str());
+		printf("%s<第%d行> 语法错误 : 在 %s 之前丢失 %s .\n",scanner->getFile(),scanner->getLine()
+			,t->toString().c_str(),synErrorTable[code/2]);
+	else // 表示符号匹配措施
+		printf("%s<第%d行> 语法错误 : 在 %s 处没有正确匹配 %s .\n",scanner->getFile(),scanner->getLine()
+			,t->toString().c_str(),synErrorTable[code/2]);
+}
+
 void Paser::Analysis() {
   ReadToken(); // 首先读入一个token到前看符号中
   AnalyProgram(); // 根据文法推导，自顶向下开始分析

@@ -22,13 +22,13 @@ void Paser::SyntaxErrLog(SyntaxErr errTypeCode, Token *t)
 		"}"
 	};
   int index = static_cast<int>(errTypeCode);
-	if(index % 2 == 0) // 表示Token丢失
-    CodeErrInfo::GetThis().SyntaxErr(scan.GetSrcFileScanInfo().c_str(), lexErr[(errType)].c_str());
-		printf("%s<第%d行> 语法错误 : 在 %s 之前丢失 %s .\n",scanner->getFile(),scanner->getLine()
-			,t->toString().c_str(),synErrorTable[code/2]);
-	else // 表示符号匹配措施
-		printf("%s<第%d行> 语法错误 : 在 %s 处没有正确匹配 %s .\n",scanner->getFile(),scanner->getLine()
-			,t->toString().c_str(),synErrorTable[code/2]);
+  const char *srcFileInfoStr = scan.GetSrcFileScanInfo().c_str()
+	if(index % 2 == 0) {// 表示Token丢失
+    CodeErrInfo::GetThis().SyntaxErr(srcFileInfoStr, "语法错误 : 在 %s 之前丢失 %s", t->toString().c_str(), synErrorTable[index / 2]);
+  } else {// 表示符号匹配措施
+		CodeErrInfo::GetThis().SyntaxErr(srcFileInfoStr, "语法错误 : 在 %s 处没有正确匹配 %s", t->toString().c_str(), synErrorTable[index / 2]);
+  }
+
 }
 
 void Paser::Analysis() {
@@ -79,7 +79,17 @@ void Paser::AnalySegment() {
 类型type -> int char void  (暂不支持float、数组、函数指针等)
 */
 void Paser::MatchType() {
-  ;
+  // 匹配类型，设置个默认类型
+  TokenTag tmp = TokenTag::KW_INT;
+  // 如果是type的first集，暂支持以下三种类型
+  if (currToken->tag == TokenTag::KW_INT
+      || currToken->tag == TokenTag::KW_CHAR
+      || currToken->tag == TokenTag::KW_VOID) {
+    tmp = currToken->tag;
+    ReadToken();
+  } else { // 则报匹配错误
+    d
+  }
 }
 
 /*

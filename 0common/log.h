@@ -67,7 +67,7 @@ do { \
 class CodeErrInfo {
 public:
   void LexerErr(char const *srcFileInfoStr, char const *errMsg);
-  void SyntaxErr(char const *srcFileInfoStr, char const *errMsg);
+  void SyntaxErr(char const *srcFileInfoStr, char const *pcFmt, ...);
   void GetErrNum();
   void GetWarnNum();
   static CodeErrInfo &GetThis() {

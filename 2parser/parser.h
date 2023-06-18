@@ -40,7 +40,7 @@ enum class SyntaxErr
 	RBRACE_WRONG
 };
 
-#define SYNTAX_ERROR(errType) CodeErrInfo::GetThis().SyntaxErr(scan.GetSrcFileScanInfo().c_str(), lexErr[(errType)].c_str());
+#define SYNTAX_ERROR(errTypeCode, token) SyntaxErrLog((errTypeCode), (token));
 
 class Paser {
 public:

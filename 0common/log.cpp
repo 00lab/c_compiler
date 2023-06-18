@@ -97,7 +97,18 @@ void CodeErrInfo::LexerErr(const char *srcFileInfoStr, const char *errMsg) {
   errNum++;
 }
 
-void CodeErrInfo::SyntaxErr(const char *srcFileInfoStr, const char *errMsg) {
-  PrintCodeLog(srcFileInfoStr, COMP_NM_SYNTAX, errMsg);
+void CodeErrInfo::SyntaxErr(const char *srcFileInfoStr, char const *pcFmt, ...) {
+  int  iRet;
+  va_list pcArgs;
+  char logBuf[MAX_LOG_STR_SIZE] = {0};
+  /* 填充日志信息 */
+  va_start(pcArgs, pcFmt);
+  iRet = vsnprintf(logBuf, MAX_LOG_STR_SIZE - 1, (const char*)pcFmt, pcArgs);
+  va_end(pcArgs);
+  if (iRet < 0) {
+    LOG_ERR("组建打印log失败");
+    return;
+  }
+  print << CODE_ERR_PREFIX << COMP_NM_SYNTAX << srcFileInfoStr << logBuf << print.NewLine();
   errNum++;
 }

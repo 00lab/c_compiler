@@ -1,6 +1,6 @@
 #include "parser.h"
 
-void Paser::SyntaxErrLog(SyntaxErr errTypeCode, Token *t)
+void Parser::SyntaxErrLog(SyntaxErr errTypeCode, Token *t)
 {
 	//语法错误信息串
 	static const char *synErrInfo[]=
@@ -31,7 +31,23 @@ void Paser::SyntaxErrLog(SyntaxErr errTypeCode, Token *t)
 
 }
 
-void Paser::Analysis() {
+/*
+报错与错误恢复，防止因缺失一个符号，导致连环报错
+*/
+void Parser::ErrRecovery(bool isInFollowSet,SyntaxErr errTypeCode) {
+  SyntaxErrLog(errTypeCode, currToken);
+  /*如果在给定的Follow集合内，就是当前的符号能匹配上可跟随的符号，则判断是符号缺失（如类型缺失），当前token是有效的，则不用前读*/
+  /*如果不在能跟随的符号范围内，则可判断是当前符号写错了，报符号错误，接着读入下一个符号*/
+	if (!isInFollowSet) {
+		ReadToken();
+	}
+}
+
+/*
+使用LL(1)算法，算法核心思想也是，如lexer找标识符等过程一样，parser则尽可能去匹配所有的语法结构，如函数定义肯定是以下token的排列格式：
+“返回值类型 函数名 左括号( 参数类型 参数名（可选）逗号 参数类型 参数名 ... 右括号) 分号
+*/
+void Parser::Analysis() {
   ReadToken(); // 首先读入一个token到前看符号中
   AnalyProgram(); // 根据文法推导，自顶向下开始分析
 }
@@ -44,7 +60,7 @@ void Paser::Analysis() {
 由变量声明、变量定义、函数声明、函数定义组合的程序片段segment
 所以程序片段segment还可进一步拆分
 */
-void Paser::AnalyProgram() {
+void Parser::AnalyProgram() {
   if (currToken->tag == TokenTag::END) {
     return;
   }
@@ -67,7 +83,7 @@ int func();         // 声明函数func
 类型type -> int char void  (暂不支持float、数组、函数指针等)
 符号临时统称def包含 变量、函数、指针变量等，为了理解和可读性，另起函数拆解
 */
-void Paser::AnalySegment() {
+void Parser::AnalySegment() {
   bool isExt = currToken->tag == TokenTag::KW_EXTERN;
   if (isExt) { ReadToken(); } // 若匹配成功extern关键字，则读入下一个前看Token
   // 随后，无论是变量还是函数，必然是一个类型type，如果不是type则报错
@@ -78,7 +94,7 @@ void Paser::AnalySegment() {
 匹配类型
 类型type -> int char void  (暂不支持float、数组、函数指针等)
 */
-void Paser::MatchType() {
+void Parser::MatchType() {
   // 匹配类型，设置个默认类型
   TokenTag tmp = TokenTag::KW_INT;
   // 如果是type的first集，暂支持以下三种类型
@@ -88,7 +104,12 @@ void Paser::MatchType() {
     tmp = currToken->tag;
     ReadToken();
   } else { // 则报匹配错误
-    d
+    // type后的follow集是标识符或者指针*号，如果当前的是这两个，则表示type类型丢失了
+    if (currToken->tag == TokenTag::ID || currToken->tag == TokenTag::MUL) {
+      Parser::ErrRecovery(true, TYPE_LOST);
+    } else { // 如果后面跟的不是follow集，则应该是type写错了
+      Parser::ErrRecovery(false, TYPE_WRONG);
+    }
   }
 }
 

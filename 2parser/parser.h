@@ -42,9 +42,9 @@ enum class SyntaxErr
 
 #define SYNTAX_ERROR(errTypeCode, token) SyntaxErrLog((errTypeCode), (token));
 
-class Paser {
+class Parser {
 public:
-  Paser(Lexer &lexer, Scanner &scan) : lexer(lexer), scan(scan) {}
+  Parser(Lexer &lexer, Scanner &scan) : lexer(lexer), scan(scan) {}
   void Analysis(); // 语法分析主入口，通过lexer输入token流，输出抽象语法树
 private:
   void ReadToken() { currToken = lexer.GetNextToken(); }
@@ -52,6 +52,7 @@ private:
   void AnalySegment(); // 分析程序片段
   void MatchType(); //分析匹配类型
   void SyntaxErrLog(SyntaxErr errTypeCode, Token *t);
+  void ErrRecovery(bool isInFollowSet,SyntaxErr errTypeCode);
 
   /*---------私有变量-----------*/
   Scanner &scan; // 用于获得当前源文件的信息

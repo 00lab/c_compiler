@@ -1,6 +1,6 @@
 #include "parser.h"
 
-void Parser::SyntaxErrLog(SyntaxErr errTypeCode, Token *t)
+void Parser::SyntaxErrLog(SyntaxErr errTypeCode, TokenTag *t)
 {
 	//语法错误信息串
 	static const char *synErrInfo[]=
@@ -34,11 +34,13 @@ void Parser::SyntaxErrLog(SyntaxErr errTypeCode, Token *t)
 /*
 报错与错误恢复，防止因缺失一个符号，导致连环报错
 */
-void Parser::ErrRecovery(bool isInFollowSet,SyntaxErr errTypeCode) {
-  SyntaxErrLog(errTypeCode, currToken);
-  /*如果在给定的Follow集合内，就是当前的符号能匹配上可跟随的符号，则判断是符号缺失（如类型缺失），当前token是有效的，则不用前读*/
-  /*如果不在能跟随的符号范围内，则可判断是当前符号写错了，报符号错误，接着读入下一个符号*/
-	if (!isInFollowSet) {
+void Parser::ErrRecovery(bool isInFollowSet, SyntaxErr lostSyntaxErr, SyntaxErr wrongSyntaxErr) {
+  if (isInFollowSet) { // 如果在follow集内，则报符号缺失错误
+    SyntaxErrLog(lostSyntaxErr, currToken);
+	} else {
+    SyntaxErrLog(wrongSyntaxErr, currToken);
+    /*如果在给定的Follow集合内，就是当前的符号能匹配上可跟随的符号，则判断是符号缺失（如类型缺失），当前token是有效的，则不用前读*/
+    /*如果不在能跟随的符号范围内，则可判断是当前符号写错了，报符号错误，接着读入下一个符号*/
 		ReadToken();
 	}
 }
@@ -88,13 +90,14 @@ void Parser::AnalySegment() {
   if (isExt) { ReadToken(); } // 若匹配成功extern关键字，则读入下一个前看Token
   // 随后，无论是变量还是函数，必然是一个类型type，如果不是type则报错
   MatchType();
+  MatchDefSyntax(isExt);
 }
 
 /*
 匹配类型
 类型type -> int char void  (暂不支持float、数组、函数指针等)
 */
-void Parser::MatchType() {
+TokenTag Parser::MatchType() {
   // 匹配类型，设置个默认类型
   TokenTag tmp = TokenTag::KW_INT;
   // 如果是type的first集，暂支持以下三种类型
@@ -105,12 +108,10 @@ void Parser::MatchType() {
     ReadToken();
   } else { // 则报匹配错误
     // type后的follow集是标识符或者指针*号，如果当前的是这两个，则表示type类型丢失了
-    if (currToken->tag == TokenTag::ID || currToken->tag == TokenTag::MUL) {
-      Parser::ErrRecovery(true, TYPE_LOST);
-    } else { // 如果后面跟的不是follow集，则应该是type写错了
-      Parser::ErrRecovery(false, TYPE_WRONG);
-    }
+    bool isInFollowSet = currToken->tag == TokenTag::ID || currToken->tag == TokenTag::MUL;
+    Parser::ErrRecovery(isInFollowSet, SyntaxErr::TYPE_LOST, SyntaxErr::TYPE_WRONG); // 如果后面跟的不是follow集，则应该是type写错了
   }
+  return tmp;
 }
 
 /*
@@ -141,3 +142,24 @@ void Parser::MatchType() {
                 | 函数名ID 左括号( 参数列表param 右括号) 函数实体尾部tail
 简单来说就是这个函数有三种情况，三个分支
 */
+void Parser::MatchDefSyntax(bool isExtern, TokenTag typeTag) {
+  // 根据上边注释，首先匹配看有无*号，如果有，则可能是指针变量和返回指针的函数，如果没有则是普通变量或函数
+  string name = "";
+  if (currToken->tag == TokenTag::MUL) {
+    ReadToken();
+    // 如果*号下一个是ID则正确，否则可能丢失了变量名或函数名
+    if (currToken->tag != TokenTag::ID) { // 进入报错
+      // *后的follow集是=号、分号(;)、逗号(,)，如果当前是这其中一个，则表示标识符缺失，否则是写错了等语法错误
+      bool isInFollowSet = currToken->tag == TokenTag::COMMA || currToken->tag == TokenTag::SEMICON || currToken->tag == TokenTag::ASSIGN;
+      Parser::ErrRecovery(true, SyntaxErr::ID_LOST, SyntaxErr::ID_WRONG);
+    }
+    // TODO: 暂只支持指针变量定义，初始化和函数待支持
+    // 将指针变量加入变量列表
+
+  }
+  if (currToken->tag == TokenTag::ID) {
+    name = static_cast<TokenId *>(currToken)->idName;
+    ReadToken();
+    // 新增一个变量
+  }
+}

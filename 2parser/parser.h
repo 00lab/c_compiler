@@ -50,9 +50,10 @@ private:
   void ReadToken() { currToken = lexer.GetNextToken(); }
   void AnalyProgram(); // 从文法推导入口开始分析
   void AnalySegment(); // 分析程序片段
-  void MatchType(); //分析匹配类型
-  void SyntaxErrLog(SyntaxErr errTypeCode, Token *t);
-  void ErrRecovery(bool isInFollowSet,SyntaxErr errTypeCode);
+  TokenTag MatchType(); // 分析匹配类型
+  void MatchDefSyntax(bool isExtern, TokenTag typeTag); // 分析类型后可能跟随的函数声明、函数定义、变量定义等
+  void SyntaxErrLog(SyntaxErr errTypeCode, TokenTag *t);
+  void ErrRecovery(bool isInFollowSet, SyntaxErr lostSyntaxErr, SyntaxErr wrongSyntaxErr);
 
   /*---------私有变量-----------*/
   Scanner &scan; // 用于获得当前源文件的信息

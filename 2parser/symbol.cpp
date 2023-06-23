@@ -20,7 +20,7 @@ SymValue::SymValue() {
 
 SymValue::SymValue(int val) { // 整数字面量变量
 	clear();
-	SetName(VAL_NAME_INT);//特殊变量名字
+	SetName(VAL_NAME_INT); // 特殊变量名字
 	SetLeft(false);
 	SetVarType(TokenTag::KW_INT);
 	intValue = val;
@@ -28,10 +28,54 @@ SymValue::SymValue(int val) { // 整数字面量变量
 	isPtr = false;
 }
 
-SymValue::SymValue(Token *literalPtr); // 字面量
-SymValue::SymValue(vector<int> scopePath, bool isExtern, TokenTag varType, bool isPtr, string name, SymValue *init = nullptr); // 普通变量
-SymValue::SymValue(vector<int> scopePath, bool isExtern, TokenTag varType, string name, int len); // 构造数组
+SymValue::SymValue(Token *literalPtr); { // 常量，字符串常量存放在字符串表中，其他用完删除
+	clear();
+	SetLeft(false);
+	isLiteral = true;
+	if (literalPtr->tag == TokenTag::NUM) {
+		SetVarType(TokenTag::KW_INT);
+		SetName(VAL_NAME_INT);
+		intValue = static_cast<TokenNum *>(literalPtr)->val; // 记录数值
+		return;
+	}
+	if (literalPtr->tag == TokenTag::CH) {
+		SetVarType(TokenTag::KW_CHAR);
+		SetName(VAL_NAME_CHAR);
+		intValue = 0; // 让联合体高位为0
+		charValue = static_cast<TokenChar *>(literalPtr)->val; // 记录数值
+		return;
+	}
+	if (literalPtr->tag == TokenTag::STR) {
+		SetVarType(TokenTag::KW_CHAR);
+		string tmpStr = static_cast<TokenStr *>(literalPtr)->val;
+		SetName(tmpStr); // TODO 产生一个名字
+		strValue = tmpStr;
+		varSize = SIZE_CHAR;
+		SetArray(tmpStr.size() + 1); // 字符串数组
+		return;
+	}
+	LOG_ERR("未支持的常量：%s", literalPtr->ToString().c_str());
+}
 
+//  初始化变量、指针
+SymValue::SymValue(vector<int> scopePath, bool isExtern, TokenTag varType, bool isPtr, string name, SymValue *init = nullptr) { // 普通变量
+  Clear();
+	this->scopePath = scopePath;
+	SetExtern(isExtern);
+	SetVarType(varType);
+	SetPtr(isPtr);
+	SetName(name);
+	initData = init;
+}
+
+SymValue::SymValue(vector<int> scopePath, bool isExtern, TokenTag varType, string name, int len) { // 构造数组
+  Clear();
+	this->scopePath = scopePath;
+	SetExtern(isExtern);
+	SetVarType(varType);
+	SetName(name);
+	SetArray(len);
+}
 
   /*私有函数*/
 void SymValue::Clear() { // 清楚自身信息
@@ -96,4 +140,26 @@ void SymValue::SetArray(int length) {
 	}
 }
 
+
+/*语法函数*/
+// 构造函数声明，返回值 名称 参数列表
+SymFunc::SymFunc(bool isExtern, TokenTag reType, string name, vector<SymValue *> &paramList)
+    : isExterned(isExtern), reType(reType), name(name), paramVarList(paramList) {
+  currEsp = 12; // TODO
+	maxStackDepth = 12; //TODO
+	for (int i = 0, argOffset = ALIGNMENT_SIZE; i < paramList.size(); i++, argOffset += ALIGNMENT_SIZE) {
+		paramVarList[i]->SetOffset(argOffset);
+	}
+  relocated = false;
+	// TODO dfg=NULL;
+}
+SymFunc::~SymFunc();
+
+// 作用域管理，局部变量地址计算
+void SymFunc::EnterScope(); // 进入新的作用域
+void SymFunc::LeaveScope(); // 离开当前作用域
+void SymFunc::Locate(SymValue *v); //定位局部栈帧偏移
+
+// IR
+void SymFunc::SetStackMaxDepth(int dep); // 设置栈帧最大深度
 

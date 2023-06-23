@@ -22,4 +22,5 @@ typedef void (*GetSrcFileInfoFuncType)(char **fileName, int *rowNum, int *colNum
 #define VAL_NAME_INT "<int>"
 #define VAL_NAME_CHAR "<char>"
 
+#define ALIGNMENT_SIZE 4
 #endif

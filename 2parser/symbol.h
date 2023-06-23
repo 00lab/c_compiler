@@ -17,6 +17,7 @@ public:
 	SymValue(vector<int> scopePath, bool isExtern, TokenTag varType, bool isPtr, string name, SymValue *init = nullptr); // 普通变量
 	SymValue(vector<int> scopePath, bool isExtern, TokenTag varType, string name, int len); // 构造数组
 
+  void SetOffset(int offVal) { offset = offVal; }// 设置栈偏移量
   // public 变量
 	int symTabIndex; // 符号列表索引
 	bool isLive;
@@ -38,7 +39,7 @@ private:
 	bool isPtr; // 是否是指针
 	bool isArray; // 是否是数组
 	int arrSize; // 如果是数组，记录数组长度
-	Tag type; // 变量类型
+	TokenTag type; // 变量类型
 	string name; // 变量名称
 
 	vector<int> scopePath; // 记录作用域路径
@@ -58,6 +59,37 @@ private:
 
 	int varSize; // 当前变量内存大小
 	int offset; // 如果是局部变量和参数变量，记录在栈帧中的偏移，默认为0，无效值，表示全局变量
+};
+
+/*语法函数*/
+class SymFunc {
+public:
+  SymFunc(bool isExtern, TokenTag reType, string name, vector<SymValue *> &paramList);
+	~SymFunc() {
+		// if (dfg) delete dfg; // 清理数据流图
+	}
+
+	// 作用域管理，局部变量地址计算
+	void EnterScope(); // 进入新的作用域
+	void LeaveScope(); // 离开当前作用域
+	void Locate(SymValue *v); //定位局部栈帧偏移
+
+	// IR
+	void SetStackMaxDepth(int dep); // 设置栈帧最大深度
+private:
+  bool isExterned; // 记录是否有extern关键字
+	TokenTag reType; // 返回值类型
+	string name; // 函数名称
+	vector<SymValue *> &paramVarList; // 形参变量列表
+
+	int maxStackDepth; // 栈的最大深度，初始0，表示函数栈需要分配的最大深度
+	int currEsp; // 当前栈指针位置，初值0，ebp存储点
+	bool relocated; // 栈帧重定位标记
+
+	// 作用域管理
+	vector<int> scopeEsp; // 当前作用域初始esp，动态控制作用域的分配和释放
+
+// TODO IR与优化
 };
 
 #endif

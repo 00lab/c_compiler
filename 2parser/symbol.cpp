@@ -107,6 +107,7 @@ void SymValue::SetVarType(TokenTag type) {
 	this->type = type;
 	if (type == TokenTag::KW_VOID) {
 		// 语义分析报错：不能是void 类型变量
+		LOG_ERR("语义错误, 变量不能是void类型: %s", type);
 		type = TokenTag::KW_INT; // 设置默认为int类型
 	}
 	if (!isExterned && type == TokenTag::KW_INT) varSize = SIZE_INT;
@@ -156,10 +157,27 @@ SymFunc::SymFunc(bool isExtern, TokenTag reType, string name, vector<SymValue *>
 SymFunc::~SymFunc();
 
 // 作用域管理，局部变量地址计算
-void SymFunc::EnterScope(); // 进入新的作用域
-void SymFunc::LeaveScope(); // 离开当前作用域
-void SymFunc::Locate(SymValue *v); //定位局部栈帧偏移
+void SymFunc::EnterScope() { // 进入新的作用域
+  scopeEsp.push_back(0);
+}
+
+void SymFunc::LeaveScope() { // 离开当前作用域
+  maxStackDepth = currEsp > maxStackDepth? currEsp : maxStackDepth;
+	currEsp = scopeEsp.back();
+	scopeEsp.pop_back();
+}
+
+void SymFunc::Locate(SymValue *v) { //定位局部栈帧偏移
+  int size = v->GetSize();
+	size += (ALIGNMENT_SIZE - size % ALIGNMENT_SIZE) % ALIGNMENT_SIZE; // 按照ALIGNMENT_SIZE=4字节的整数倍分配局部变量
+	scopeEsp.back() += size; // 累计作用域大小
+	currEsp += size; // 累计当前作用域大小
+	v->SetOffset(-currEsp); // 栈是负增长的，累计为负数
+}
 
 // IR
-void SymFunc::SetStackMaxDepth(int dep); // 设置栈帧最大深度
+void SymFunc::SetStackMaxDepth(int dep) { // 设置栈帧最大深度
+  maxStackDepth = dep;
+	relocated = true;
+}
 

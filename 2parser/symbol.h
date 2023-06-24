@@ -17,6 +17,9 @@ public:
 	SymValue(vector<int> scopePath, bool isExtern, TokenTag varType, bool isPtr, string name, SymValue *init = nullptr); // 普通变量
 	SymValue(vector<int> scopePath, bool isExtern, TokenTag varType, string name, int len); // 构造数组
 
+  int GetSize() { return varSize; }
+	string GetName() { return name; }
+	vector<int> GetScopePath() { return scopePath; }
   void SetOffset(int offVal) { offset = offVal; }// 设置栈偏移量
   // public 变量
 	int symTabIndex; // 符号列表索引

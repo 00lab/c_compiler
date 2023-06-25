@@ -77,6 +77,13 @@ SymValue::SymValue(vector<int> scopePath, bool isExtern, TokenTag varType, strin
   SetArray(len);
 }
 
+string SymValue::GetValStr() {
+  if (type == TokenTag::STR) {
+    return strValue;
+  }
+  return "DEFAULT-UNKNOW";
+}
+
   /*私有函数*/
 void SymValue::Clear() { // 清楚自身信息
   scopePath.push_back(SCOPE_GLOBAL); // 默认全局作用域
@@ -173,6 +180,10 @@ void SymFunc::Locate(SymValue *v) { //定位局部栈帧偏移
   scopeEsp.back() += size; // 累计作用域大小
   currEsp += size; // 累计当前作用域大小
   v->SetOffset(-currEsp); // 栈是负增长的，累计为负数
+}
+
+void SymFunc::ToString() {
+  LOG_INFO("%s %s(", TokenTagName[reType], name.c_str());
 }
 
 // IR

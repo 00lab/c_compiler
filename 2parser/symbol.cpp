@@ -182,8 +182,17 @@ void SymFunc::Locate(SymValue *v) { //定位局部栈帧偏移
   v->SetOffset(-currEsp); // 栈是负增长的，累计为负数
 }
 
+bool SymFunc::IsActualArgsMatch2FormalArgs(vector<SymValue *> &args) {
+  if (paramVarList.size() != args.size()) return false;
+  for (int i = 0; i < paramVarList.size(); ++i) {
+    // TODO 完成IR check
+  }
+  return true;
+}
+
 void SymFunc::ToString() {
   LOG_INFO("%s %s(", TokenTagName[reType], name.c_str());
+  // TODO 完善打印
 }
 
 // IR

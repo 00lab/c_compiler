@@ -2,31 +2,31 @@
 
 void Parser::SyntaxErrLog(SyntaxErr errTypeCode, TokenTag *t)
 {
-	//语法错误信息串
-	static const char *synErrInfo[]=
-	{
-		"类型",
-		"标识符",
-		"数组长度",
-		"常量",
-		"逗号",
-		"分号",
-		"=",
-		"冒号",
-		"while",
-		"(",
-		")",
-		"[",
-		"]",
-		"{",
-		"}"
-	};
+  //语法错误信息串
+  static const char *synErrInfo[]=
+  {
+    "类型",
+    "标识符",
+    "数组长度",
+    "常量",
+    "逗号",
+    "分号",
+    "=",
+    "冒号",
+    "while",
+    "(",
+    ")",
+    "[",
+    "]",
+    "{",
+    "}"
+  };
   int index = static_cast<int>(errTypeCode);
   const char *srcFileInfoStr = scan.GetSrcFileScanInfo().c_str()
-	if(index % 2 == 0) {// 表示Token丢失
+  if(index % 2 == 0) {// 表示Token丢失
     CodeErrInfo::GetThis().SyntaxErr(srcFileInfoStr, "语法错误 : 在 %s 之前丢失 %s", t->toString().c_str(), synErrorTable[index / 2]);
   } else {// 表示符号匹配措施
-		CodeErrInfo::GetThis().SyntaxErr(srcFileInfoStr, "语法错误 : 在 %s 处没有正确匹配 %s", t->toString().c_str(), synErrorTable[index / 2]);
+    CodeErrInfo::GetThis().SyntaxErr(srcFileInfoStr, "语法错误 : 在 %s 处没有正确匹配 %s", t->toString().c_str(), synErrorTable[index / 2]);
   }
 
 }
@@ -37,12 +37,12 @@ void Parser::SyntaxErrLog(SyntaxErr errTypeCode, TokenTag *t)
 void Parser::ErrRecovery(bool isInFollowSet, SyntaxErr lostSyntaxErr, SyntaxErr wrongSyntaxErr) {
   if (isInFollowSet) { // 如果在follow集内，则报符号缺失错误
     SyntaxErrLog(lostSyntaxErr, currToken);
-	} else {
+  } else {
     SyntaxErrLog(wrongSyntaxErr, currToken);
     /*如果在给定的Follow集合内，就是当前的符号能匹配上可跟随的符号，则判断是符号缺失（如类型缺失），当前token是有效的，则不用前读*/
     /*如果不在能跟随的符号范围内，则可判断是当前符号写错了，报符号错误，接着读入下一个符号*/
-		ReadToken();
-	}
+    ReadToken();
+  }
 }
 
 /*

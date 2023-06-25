@@ -159,20 +159,47 @@ void SymbolTable::AddDefFunc(SymFunc *func) { // 添加函数定义
   if (functionTable.find(func->GetName()) == functionTable.end()) { // 不存在该函数，则直接添加
     functionTable[func->GetName()] = func;
     functionList.push_back(func->GetName());
-    return;
+  } else {
+    // 否则函数已经在函数表中，则看是不是声明和定义匹配
+    SymFunc *tmpFunc = functionTable[func->GetName()];
+    if (!tmpFunc->GetExterned()) { // 只要在头文件里声明的函数，添加声明函数时，都设成了true，如果这里出现extern则报错
+      // TODO 语义错误
+      LOG_ERR("函数重复定义：%s", func->GetName());
+    } else {
+      if (!tmpFunc->IsActualArgsMatch2FormalArgs(func)) {
+        // TODO: 报语义错误
+        LOG_ERR("函数声明与定义不匹配：%s", func->GetName());
+      }
+      tmpFunc->MatchToDefine(func);
+    }
+    delete func;
+    func = tmpFunc;
   }
-  // 否则函数已经在函数表中，则看是不是声明和定义匹配
-  SymFunc *tmpFunc = functionTable[func->GetName()];
-  if (!tmpFunc->GetExterned()) { // 只要在头文件里声明的函数，添加声明函数时，都
-    ;
-  }
-  if (!tmpFunc->IsActualArgsMatch2FormalArgs(func)) {
-    // TODO: 报语义错误
-    LOG_ERR("函数声明与定义不匹配：%s", func->GetName());
-  }
+  currFunc = func;
+  // TODO IR生成
 }
-void SymbolTable::AddDefFuncEnd(); // 函数定义结束位置
-SymFunc *SymbolTable::GetSymFunc(string funcName, vector<SymValue *> &args); // 根据调用类型，获取一个函数
+
+void SymbolTable::AddDefFuncEnd() { // 函数定义结束位置
+  // TODO IR生成
+  currFunc = nullptr;
+}
+
+/* 用于函数调用匹配，函数名+实参 */
+SymFunc *SymbolTable::GetSymFunc(string funcName, vector<SymValue *> &args) { // 根据调用类型，获取一个函数
+  if (functionTable.find(funcName) != functionTable.end()) {
+    SymFunc *tmpFunc = functionTable[funcName];
+    if (!tmpFunc->IsActualArgsMatch2FormalArgs(func)) {
+      // TODO 语义报错
+      LOG_ERR("函数调用实参与形参不匹配：%s", funcName);
+      return nullptr;
+    }
+    return tmpFunc;
+  }
+  // TODO 语义报错
+  LOG_ERR("函数未定义：%s", funcName);
+  return nullptr;
+}
+
 // TODO add IR
 
 void SymbolTable::ToString() {

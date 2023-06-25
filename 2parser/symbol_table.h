@@ -28,6 +28,7 @@ public:
   void AddDecFunc(SymFunc *func); // 添加函数声明
   void AddDefFunc(SymFunc *func); // 添加函数定义
   void AddDefFuncEnd(); // 函数定义结束位置
+  /* 用于函数调用匹配，函数名+实参 */
   SymFunc *GetSymFunc(string funcName, vector<SymValue *> &args); // 根据调用类型，获取一个函数
   // TODO add IR
 

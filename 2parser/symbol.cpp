@@ -195,6 +195,12 @@ void SymFunc::ToString() {
   // TODO 完善打印
 }
 
+// 将函数声明匹配到c文件的函数定义，需要拷贝参数列表，设定extern
+void SymFunc::MatchToDefine(SymFunc *defFunc) {
+  isExterned = false;
+  paramVarList = def->paraVar; // 拷贝参数
+}
+
 // IR
 void SymFunc::SetStackMaxDepth(int dep) { // 设置栈帧最大深度
   maxStackDepth = dep;

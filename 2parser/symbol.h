@@ -83,6 +83,7 @@ public:
 
   void SetExterned(bool ext) { isExterned = ext; }
   void GetExterned() { return isExterned; }
+	void MatchToDefine(SymFunc *defFunc); // 将函数声明匹配到c文件的函数定义，需要拷贝参数列表，设定extern
 
   // IR
   void SetStackMaxDepth(int dep); // 设置栈帧最大深度

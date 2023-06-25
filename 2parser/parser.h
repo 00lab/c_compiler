@@ -8,36 +8,36 @@
 
 enum class SyntaxErr
 {
-	TYPE_LOST,					//类型
-	TYPE_WRONG,					
-	ID_LOST,						//标志符
-	ID_WRONG,						
-	NUM_LOST,						//数组长度
-	NUM_WRONG,
-	LITERAL_LOST,				//常量
-	LITERAL_WRONG,
-	COMMA_LOST,					//逗号
-	COMMA_WRONG,
-	SEMICON_LOST,				//分号
-	SEMICON_WRONG,
-	ASSIGN_LOST,				//=
-	ASSIGN_WRONG,
-	COLON_LOST,					//冒号
-	COLON_WRONG,
-	WHILE_LOST,					//while
-	WHILE_WRONG,
-	LPAREN_LOST,				//(
-	LPAREN_WRONG,
-	RPAREN_LOST,				//)
-	RPAREN_WRONG,
-	LBRACK_LOST,				//[
-	LBRACK_WRONG,
-	RBRACK_LOST,				//]
-	RBRACK_WRONG,
-	LBRACE_LOST,				//{
-	LBRACE_WRONG,
-	RBRACE_LOST,				//}
-	RBRACE_WRONG
+  TYPE_LOST,          //类型
+  TYPE_WRONG,          
+  ID_LOST,            //标志符
+  ID_WRONG,            
+  NUM_LOST,            //数组长度
+  NUM_WRONG,
+  LITERAL_LOST,        //常量
+  LITERAL_WRONG,
+  COMMA_LOST,          //逗号
+  COMMA_WRONG,
+  SEMICON_LOST,        //分号
+  SEMICON_WRONG,
+  ASSIGN_LOST,        //=
+  ASSIGN_WRONG,
+  COLON_LOST,          //冒号
+  COLON_WRONG,
+  WHILE_LOST,          //while
+  WHILE_WRONG,
+  LPAREN_LOST,        //(
+  LPAREN_WRONG,
+  RPAREN_LOST,        //)
+  RPAREN_WRONG,
+  LBRACK_LOST,        //[
+  LBRACK_WRONG,
+  RBRACK_LOST,        //]
+  RBRACK_WRONG,
+  LBRACE_LOST,        //{
+  LBRACE_WRONG,
+  RBRACE_LOST,        //}
+  RBRACE_WRONG
 };
 
 #define SYNTAX_ERROR(errTypeCode, token) SyntaxErrLog((errTypeCode), (token));

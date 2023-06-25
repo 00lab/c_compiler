@@ -31,8 +31,8 @@ public:
   SymFunc *GetSymFunc(string funcName, vector<SymValue *> &args); // 根据调用类型，获取一个函数
   // TODO add IR
 
-  vector<int>& GetScopePath(); // 获取作用域path, -1全局，0 main函数
-  SymFunc *GetCurrFunc(); // 获取当前正在分析的函数
+  vector<int>& GetScopePath() { return scopePath; } // 获取作用域path, -1全局，0 main函数
+  SymFunc *GetCurrFunc() { return currFunc; } // 获取当前正在分析的函数
   void ToString();
 
 private:
@@ -40,7 +40,7 @@ private:
   vector<string> variableList; // 记录变量的添加顺序，散列表的方式记录变量，
   vector<string> functionList; // 记录函数的添加顺序
 
-  unordered_map<string, vector<SymValue *> *> valueTable; // 变量表，同名变量的链表
+  unordered_map<string, vector<SymValue *> *> variableTable; // 变量表，同名变量的链表
   unordered_map<string, SymValue *> stringTable; // 字符串常量表
   unordered_map<string, SymFunc *> functionTable; // 函数表
 

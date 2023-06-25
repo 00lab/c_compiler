@@ -89,13 +89,88 @@ SymbolTable::AddSymVal(SymValue *v) { // 添加一变量 到符号表
   }
   // TODO 添加IR
 }
-void SymbolTable::AddSymStr(SymValue *v); // 添加一字符串常量
-SymValue *SymbolTable::GetSymValue(string valName); // 获取一个变量
-vector<SymValue *> SymbolTable::GetGlobalVars(); // 获取所有全局变量
+
+void SymbolTable::AddSymStr(SymValue *v) { // 添加一字符串常量
+  stringTable[v->GetName()] = v;
+}
+
+SymValue *SymbolTable::GetSymValue(string valName) { // 获取一个变量
+  SymValue *v = nullptr;
+  if (variableTable.find(valName) != variableTable.end()) {
+    vector<SymValue *> &sameVarList = *variableTable[valName];
+    int maxLen = 0; //找到的最近作用域路径
+    for (int i = 0; i < sameVarList.size(); ++i) {
+      int scopeTmp = sameVarList[i]->GetScopePath().size();
+      int lastScope = sameVarList[i]->GetScopePath()[scopeTmp - 1];
+      if (scopeTmp <= scopePath.size() && lastScope == scopePath[scopeTmp - 1]) {
+        if (scopeTmp > maxLen) {
+          maxLen = scopeTmp;
+          v = sameVarList[i];
+        }
+      }
+    }
+  }
+  if (!v) LOG_ERR("变量未声明：%s", valName); // TODO 变量未声明语义错误
+  return v;
+}
+
+vector<SymValue *> SymbolTable::GetGlobalVars() { // 获取所有全局变量
+  vector<SymValue *> globalV;
+  for (int i = 0; i < variableList.size(); ++i) {
+    string vName = variableList[i];
+    if (vName[0] == '<') continue; // 常量，不添加
+    vector<SymValue *> &vList = *variableTable[varName];
+    for (int j = 0; j < vList.size(); ++j) {
+      if (vList[j]->GetScopePath().size() == SCOPE_PATH_SIZE_GLOBAL) { // 全局变量
+        globalV.push_back(vList[j]);
+        break; // 同名全局变量只会有一个，否则会在添加变量时报错
+      }
+    }
+  }
+  return globalV;
+}
 
 // 函数管理
-void SymbolTable::AddDecFunc(SymFunc *func); // 添加函数声明
-void SymbolTable::AddDefFunc(SymFunc *func); // 添加函数定义
+void SymbolTable::AddDecFunc(SymFunc *func) { // 添加函数声明
+  func->SetExterned(true);
+  if (functionTable.find(func->GetName()) == functionTable.end()) {
+    // 当前函数不在函数表内, 添加该函数
+    functionTable[func->GetName()] = func;
+    functionList.push_back(func->GetName());
+  } else {
+    // 否则存在重名函数，如果参数不匹配，可能是声明与定义不匹配，如果参数匹配，则报重复声明错误
+    SymFunc *tmpFunc = functionTable[func->GetName()];
+    if (!tmpFunc->IsActualArgsMatch2FormalArgs(func)) {
+      // TODO: 报语义错误
+      LOG_ERR("函数声明与定义不匹配：%s", func->GetName());
+    } else {
+      LOG_ERR("函数重复声明：%s", func->GetName());
+    }
+    delete func;
+  }
+}
+
+void SymbolTable::AddDefFunc(SymFunc *func) { // 添加函数定义
+  if (func->GetExterned()) { // 函数定义时出现了extern关键字，报错
+    // TODO: 报语义错误
+    LOG_ERR("函数定义不能出现extern关键字：%s", func->GetName());
+    func->SetExterned(false);
+  }
+  if (functionTable.find(func->GetName()) == functionTable.end()) { // 不存在该函数，则直接添加
+    functionTable[func->GetName()] = func;
+    functionList.push_back(func->GetName());
+    return;
+  }
+  // 否则函数已经在函数表中，则看是不是声明和定义匹配
+  SymFunc *tmpFunc = functionTable[func->GetName()];
+  if (!tmpFunc->GetExterned()) { // 只要在头文件里声明的函数，添加声明函数时，都
+    ;
+  }
+  if (!tmpFunc->IsActualArgsMatch2FormalArgs(func)) {
+    // TODO: 报语义错误
+    LOG_ERR("函数声明与定义不匹配：%s", func->GetName());
+  }
+}
 void SymbolTable::AddDefFuncEnd(); // 函数定义结束位置
 SymFunc *SymbolTable::GetSymFunc(string funcName, vector<SymValue *> &args); // 根据调用类型，获取一个函数
 // TODO add IR

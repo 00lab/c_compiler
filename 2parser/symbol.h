@@ -78,7 +78,11 @@ public:
   void LeaveScope(); // 离开当前作用域
   void Locate(SymValue *v); //定位局部栈帧偏移
 
+  bool IsActualArgsMatch2FormalArgs(vector<SymValue *> &args); // 形参与实参匹配
   void ToString();
+
+  void SetExterned(bool ext) { isExterned = ext; }
+  void GetExterned() { return isExterned; }
 
   // IR
   void SetStackMaxDepth(int dep); // 设置栈帧最大深度

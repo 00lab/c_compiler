@@ -20,6 +20,7 @@ public:
   int GetSize() { return varSize; }
   string GetName() { return name; }
   vector<int> GetScopePath() { return scopePath; }
+  string GetValStr(); // 将value值转换成string
   void SetOffset(int offVal) { offset = offVal; }// 设置栈偏移量
   // public 变量
   int symTabIndex; // 符号列表索引
@@ -76,6 +77,8 @@ public:
   void EnterScope(); // 进入新的作用域
   void LeaveScope(); // 离开当前作用域
   void Locate(SymValue *v); //定位局部栈帧偏移
+
+  void ToString();
 
   // IR
   void SetStackMaxDepth(int dep); // 设置栈帧最大深度

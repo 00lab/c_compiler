@@ -151,15 +151,71 @@ void Parser::MatchDefSyntax(bool isExtern, TokenTag typeTag) {
     if (currToken->tag != TokenTag::ID) { // 进入报错
       // *后的follow集是=号、分号(;)、逗号(,)，如果当前是这其中一个，则表示标识符缺失，否则是写错了等语法错误
       bool isInFollowSet = currToken->tag == TokenTag::COMMA || currToken->tag == TokenTag::SEMICON || currToken->tag == TokenTag::ASSIGN;
-      Parser::ErrRecovery(true, SyntaxErr::ID_LOST, SyntaxErr::ID_WRONG);
+      Parser::ErrRecovery(isInFollowSet, SyntaxErr::ID_LOST, SyntaxErr::ID_WRONG);
+      return;
     }
     // TODO: 暂只支持指针变量定义，初始化和函数待支持
     // 将指针变量加入变量列表
-
+    SymValue *v = MatchVariableInit(isExtern, typeTag, true, static_cast<TokenId *>(currToken)->name);
+    symTab.AddSymVal(v);
+    MatchVarCommaOrSemiconisExtern, typeTag);
+    return;
   }
+  // 函数或者变量
   if (currToken->tag == TokenTag::ID) {
     name = static_cast<TokenId *>(currToken)->idName;
     ReadToken();
-    // 新增一个变量
+    // 不是左括号(, 则确定是变量
+    if (currToken->tag != TokenTag::LPAREN) {
+      ;
+    }
+    // 否则是函数
+    return;
   }
+  Parser::ErrRecovery(IsInIdFollowSet(currToken->tag), SyntaxErr::ID_LOST, SyntaxErr::ID_WRONG);
+}
+
+SymValue *Parser::MatchVariableInit(bool isExtern, TokenTag typeTag, bool isPtr, string name) { // 匹配变量（含指针）的初始化
+  SymValue *v = nullptr;
+  ReadToken();
+  if (currToken->tag == TokenTag::ASSIGN) {
+    ;// TODO 如果下一个是=号，则有赋值表达式
+  }
+  // 如果没有赋值表达式，则是定义未初始化的变量
+  return new SymValue(symTab.GetScopePath(), isExtern, typeTag, isPtr, name, v);
+}
+
+// 匹配变量的逗号(,)、分号(;)
+void Parser::MatchVarCommaOrSemicon(bool isExtern, TokenTag typeTag) {
+  ReadToken();
+  if (currToken->tag == TokenTag::COMMA) {
+    ;// TODO 如果是逗号，则是逗号(,)分割的多个变量，继续匹配
+    MatchVarCommaOrSemicon(isExtern, typeTag);
+  } else if (currToken->tag == TokenTag::SEMICON) {
+    return; // 匹配到分号，语句结束
+  } else { // 如果是其他，则报错
+    bool isInFollowSet = currToken->tag == TokenTag::ID || currToken->tag == TokenTag::MUL;
+    // 不是逗号，而是理应跟随在逗号之后的标识符或指针*号（也即逗号的follow集)，则是逗号缺失
+    if (isInFollowSet) {
+      Parser::ErrRecovery(isInFollowSet, SyntaxErr::COMMA_LOST, SyntaxErr::COMMA_WRONG);
+      ; // TODO 继续匹配下一个标识符
+    } else {
+      // 不是逗号缺失，则可能是分号(;)缺失，需判断是不是应跟随在分号的follow集符号之一
+      isInFollowSet = currToken->tag == TokenTag::KW_INT || currToken->tag == TokenTag::KW_CHAR || currToken->tag == TokenTag::KW_VOID // 看是不是下一个变量/函数开始
+                      || currToken->tag == TokenTag::LPAREN || currToken->tag == TokenTag::NUM || currToken->tag == TokenTag::CH
+                      || currToken->tag == TokenTag::STR || currToken->tag == TokenTag::ID || currToken->tag == TokenTag::NOT
+                      || currToken->tag == TokenTag::SUB || currToken->tag == TokenTag::MUL
+                      || currToken->tag == TokenTag::INC || currToken->tag == TokenTag::DEC || currToken->tag == TokenTag::SEMICON
+                      || currToken->tag == TokenTag::KW_WHILE || currToken->tag == TokenTag::KW_FOR || currToken->tag == TokenTag::KW_DO
+                      || currToken->tag == TokenTag::KW_IF || currToken->tag == TokenTag::KW_SWITCH || currToken->tag == TokenTag::KW_RETURN
+                      || currToken->tag == TokenTag::KW_BREAK || currToken->tag == TokenTag::KW_CONTINUE
+                      || currToken->tag == TokenTag::KW_EXTERN || currToken->tag == TokenTag::RBRACE;
+      Parser::ErrRecovery(isInFollowSet, SyntaxErr::SEMICON_LOST, SyntaxErr::SEMICON_WRONG); // 分号缺失或出错
+    }
+  }
+}
+
+bool Parser::IsInIdFollowSet(TokenTag tag) {
+  // id, id; id= id( id[
+  return tag == TokenTag::COMMA || tag == TokenTag::SEMICON || tag == TokenTag::ASSIGN || tag == TokenTag::LPAREN || tag == TokenTag::LBRACK;
 }

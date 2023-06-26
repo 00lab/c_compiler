@@ -28,6 +28,8 @@ private:
 
 public:
   Printer() : out(std::cout), currentIndent(""), needPrintIndent(false) {}
+  Printer(std::ostream &ofs)
+      : out(ofs), currentIndent(""), needPrintIndent(false) {}
   Printer(std::ofstream &ofs)
       : out(ofs), currentIndent(""), needPrintIndent(false) {}
   Printer(std::ofstream &&ofs)

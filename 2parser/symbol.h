@@ -22,6 +22,9 @@ public:
   vector<int> GetScopePath() { return scopePath; }
   string GetValStr(); // 将value值转换成string
   void SetOffset(int offVal) { offset = offVal; }// 设置栈偏移量
+  void Print(Printer &p);
+  string ToString();
+
   // public 变量
   int symTabIndex; // 符号列表索引
   bool isLive;
@@ -79,7 +82,8 @@ public:
   void Locate(SymValue *v); //定位局部栈帧偏移
 
   bool IsActualArgsMatch2FormalArgs(vector<SymValue *> &args); // 形参与实参匹配
-  void ToString();
+  void Print(Printer &p);
+  string ToString();
 
   void SetExterned(bool ext) { isExterned = ext; }
   void GetExterned() { return isExterned; }

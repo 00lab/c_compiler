@@ -148,6 +148,23 @@ void SymValue::SetArray(int length) {
   }
 }
 
+void SymValue::Print(Printer &p) {
+  p << IncCurrentIndent();
+  p << ToString() << NewLine();
+  p << DecCurrentIndent();
+}
+
+string SymValue::ToString() {
+  string ret = TokenTagName[type] + string(" ") + name + string(" ");
+  if (type == TokenTag::STR) {
+    ret += strValue;
+  } else if (type == TokenTag::CH) {
+    ret += string(charValue);
+  } else {
+    ret += string(intValue);
+  }
+  return ret;
+}
 
 /*语法函数*/
 // 构造函数声明，返回值 名称 参数列表
@@ -190,9 +207,25 @@ bool SymFunc::IsActualArgsMatch2FormalArgs(vector<SymValue *> &args) {
   return true;
 }
 
-void SymFunc::ToString() {
-  LOG_INFO("%s %s(", TokenTagName[reType], name.c_str());
-  // TODO 完善打印
+void SymFunc::Print(Printer &p) {
+  p << IncCurrentIndent();
+  p << ToString() << NewLine();
+  p << DecCurrentIndent();
+}
+
+string SymFunc::ToString() {
+  string ret = TokenTagName[reType] + " " + name + " ( ";
+  for(int i = 0; i < paramVarList.size(); i++) {
+    ret += paramVarList[i]->ToString();
+    if( i != paramVarList.size() - 1) ret += ",";
+  }
+  ret += " )";
+  if (isExterned) {
+    ret += " ;\n";
+  } else {
+    ret += " maxStack=" + string(maxStackDepth) + "\n";
+  }
+  return ret;
 }
 
 // 将函数声明匹配到c文件的函数定义，需要拷贝参数列表，设定extern

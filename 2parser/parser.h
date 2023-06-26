@@ -55,6 +55,7 @@ private:
   TokenTag MatchType(); // 分析匹配类型
   void MatchDefSyntax(bool isExtern, TokenTag typeTag); // 分析类型后可能跟随的函数声明、函数定义、变量定义等
   SymValue *MatchVariableInit(bool isExtern, TokenTag typeTag, bool isPtr, string name); // 匹配变量（含指针）的初始化
+  SymValue *MatchVariableDefine(bool isExtern, TokenTag typeTag, bool isPtr, string name); // 匹配变量与数组定义
   void MatchVarCommaOrSemicon(bool isExtern, TokenTag typeTag); // 匹配变量的逗号(,)、分号(;)
   void SyntaxErrLog(SyntaxErr errTypeCode, TokenTag *t);
   void ErrRecovery(bool isInFollowSet, SyntaxErr lostSyntaxErr, SyntaxErr wrongSyntaxErr);

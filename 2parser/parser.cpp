@@ -158,7 +158,7 @@ void Parser::MatchDefSyntax(bool isExtern, TokenTag typeTag) {
     // 将指针变量加入变量列表
     SymValue *v = MatchVariableInit(isExtern, typeTag, true, static_cast<TokenId *>(currToken)->name);
     symTab.AddSymVal(v);
-    MatchVarCommaOrSemiconisExtern, typeTag);
+    MatchVarCommaOrSemicon(isExtern, typeTag);
     return;
   }
   // 函数或者变量
@@ -167,9 +167,24 @@ void Parser::MatchDefSyntax(bool isExtern, TokenTag typeTag) {
     ReadToken();
     // 不是左括号(, 则确定是变量
     if (currToken->tag != TokenTag::LPAREN) {
-      ;
+      SymValue *v = MatchVariableDefine(isExtern, typeTag, false, name);
+      symTab.AddSymVal(v);
+      MatchVarCommaOrSemicon(isExtern, typeTag);
+      return;
     }
     // 否则是函数
+    symtab.EnterNewScope();
+    vector<SymValue *> args;//参数列表
+    ;// TODO 匹配参数列表，暂只支持无参函数
+    ReadToken();
+    if(currToken->tag == TokenTag::RPAREN) {
+      bool isInFollowSet = currToken->tag == TokenTag::LBRACK || currToken->tag == TokenTag::SEMICON;
+      Parser::ErrRecovery(isInFollowSet, SyntaxErr::RPAREN_LOST, SyntaxErr::RPAREN_WRONG);
+      return;
+    }
+    SymFunc* func=new SymFunc(isExtern, typeTag, name, args);
+    // funtail(func);
+    symtab.LeaveCurrScope();
     return;
   }
   Parser::ErrRecovery(IsInIdFollowSet(currToken->tag), SyntaxErr::ID_LOST, SyntaxErr::ID_WRONG);
@@ -183,6 +198,15 @@ SymValue *Parser::MatchVariableInit(bool isExtern, TokenTag typeTag, bool isPtr,
   }
   // 如果没有赋值表达式，则是定义未初始化的变量
   return new SymValue(symTab.GetScopePath(), isExtern, typeTag, isPtr, name, v);
+}
+
+// 匹配变量与数组定义
+SymValue *Parser::MatchVariableDefine(bool isExtern, TokenTag typeTag, bool isPtr, string name) {
+  if (currToken->tag != TokenTag::LBRACK) {
+    // 普通变量
+    return MatchVariableInit(isExtern, typeTag, isPtr, name);
+  }
+  // TODO 数组
 }
 
 // 匹配变量的逗号(,)、分号(;)

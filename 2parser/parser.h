@@ -5,6 +5,8 @@
 #include "token.h"
 #include "common.h"
 #include "log.h"
+#include "symbol.h"
+#include "symbol_table.h"
 
 enum class SyntaxErr
 {
@@ -44,7 +46,7 @@ enum class SyntaxErr
 
 class Parser {
 public:
-  Parser(Lexer &lexer, Scanner &scan) : lexer(lexer), scan(scan) {}
+  Parser(Lexer &lexer, Scanner &scan, SymbolTable &symTab) : lexer(lexer), scan(scan), symTab(symTab) {}
   void Analysis(); // 语法分析主入口，通过lexer输入token流，输出抽象语法树
 private:
   void ReadToken() { currToken = lexer.GetNextToken(); }
@@ -52,12 +54,17 @@ private:
   void AnalySegment(); // 分析程序片段
   TokenTag MatchType(); // 分析匹配类型
   void MatchDefSyntax(bool isExtern, TokenTag typeTag); // 分析类型后可能跟随的函数声明、函数定义、变量定义等
+  SymValue *MatchVariableInit(bool isExtern, TokenTag typeTag, bool isPtr, string name); // 匹配变量（含指针）的初始化
+  void MatchVarCommaOrSemicon(bool isExtern, TokenTag typeTag); // 匹配变量的逗号(,)、分号(;)
   void SyntaxErrLog(SyntaxErr errTypeCode, TokenTag *t);
   void ErrRecovery(bool isInFollowSet, SyntaxErr lostSyntaxErr, SyntaxErr wrongSyntaxErr);
+
+  bool IsInIdFollowSet(TokenTag tag);
 
   /*---------私有变量-----------*/
   Scanner &scan; // 用于获得当前源文件的信息
   Lexer &lexer; // 词法分析器
+  SymbolTable &symTab;
   Token *currToken; // 记录LL(1) 前看符号
 };
 

@@ -183,11 +183,46 @@ void Parser::MatchDefSyntax(bool isExtern, TokenTag typeTag) {
       return;
     }
     SymFunc* func=new SymFunc(isExtern, typeTag, name, args);
-    // funtail(func);
+    ReadToken();
+    if (currToken->tag == TokenTag::SEMICON) { // 如果匹配到分号；则是函数声明
+      symtab.AddDecFunc(func);
+    } else { // 否则是函数定义
+      symtab.AddDefFunc(func);
+      MatchFunctionBlock();
+      symtab.AddDefFuncEnd();
+    }
     symtab.LeaveCurrScope();
     return;
   }
   Parser::ErrRecovery(IsInIdFollowSet(currToken->tag), SyntaxErr::ID_LOST, SyntaxErr::ID_WRONG);
+}
+
+void Parser::MatchFunctionBlock() {
+  if (!currToken->tag == TokenTag::LBRACE) {
+    // 没有匹配到左大括号，报错
+    ErrRecovery(IsInLbraceFollowSet(currToken->tag), LBRACE_LOST, LBRACE_WRONG);
+  }
+  ReadToken();
+  MatchFunctionSubProgram();
+  if (!currToken->tag == TokenTag::RBRACE) {
+    // 没有匹配到右大括号，报错
+    ErrRecovery(IsInRbraceFollowSet(currToken->tag), RBRACE_LOST, RBRACE_WRONG);
+  }
+}
+
+void Parser::MatchFunctionSubProgram() { // 匹配函数内的变量、语句、函数调用等
+  // 如果是类型开始，则识别为变量定义和初始化
+  if (IsInTypeFirstSet(currToken->tag)) {
+    // 匹配局部变量
+    TokenTag typeTag = MatchType();
+    symTab.AddSymVal(MatchVariableStatement(false, typeTag));
+  } else if (IsInExpressionsFirstSet(currToken->tag)) {
+    // 匹配语句
+  } else {
+    // 报错
+  }
+  // 匹配完一个继续递归匹配下一个
+  MatchFunctionSubProgram();
 }
 
 SymValue *Parser::MatchVariableInit(bool isExtern, TokenTag typeTag, bool isPtr, string name) { // 匹配变量（含指针）的初始化
@@ -200,13 +235,35 @@ SymValue *Parser::MatchVariableInit(bool isExtern, TokenTag typeTag, bool isPtr,
   return new SymValue(symTab.GetScopePath(), isExtern, typeTag, isPtr, name, v);
 }
 
-// 匹配变量与数组定义
+// 匹配变量与数组定义体，赋初值
 SymValue *Parser::MatchVariableDefine(bool isExtern, TokenTag typeTag, bool isPtr, string name) {
   if (currToken->tag != TokenTag::LBRACK) {
     // 普通变量
     return MatchVariableInit(isExtern, typeTag, isPtr, name);
   }
   // TODO 数组
+  if (currToken->tag != TokenTag::RBRACK) {
+  }
+}
+
+SymValue *Parser::MatchVariableStatement(bool isExtern, TokenTag typeTag) { // 匹配变量语句体
+  string name = "";
+  if (currToken->tag == TokenTag::ID) { // 普通变量
+    name = static_cast<TokenId *>(currToken)->idName;
+    ReadToken();
+    return MatchVariableDefine(isExtern, typeTag, false, name);
+  } else if (currToken->tag == TokenTag::MUL) { // 匹配看是不是指针
+    ReadToken();
+    // 如果*号下一个是ID则正确，否则可能丢失了变量名或函数名
+    if (currToken->tag != TokenTag::ID) { // 进入报错
+      // *后的follow集是=号、分号(;)、逗号(,)，如果当前是这其中一个，则表示标识符缺失，否则是写错了等语法错误
+      Parser::ErrRecovery(IsInIdFollowSet(currToken->tag), SyntaxErr::ID_LOST, SyntaxErr::ID_WRONG);
+    }
+    name = static_cast<TokenId *>(currToken)->idName;
+    return MatchVariableInit(isExtern, typeTag, true, name);
+  }
+  Parser::ErrRecovery(IsInIdFollowSet(currToken->tag), SyntaxErr::ID_LOST, SyntaxErr::ID_WRONG);
+  return MatchVariableDefine(isExtern, typeTag, false, name);
 }
 
 // 匹配变量的逗号(,)、分号(;)
@@ -242,4 +299,33 @@ void Parser::MatchVarCommaOrSemicon(bool isExtern, TokenTag typeTag) {
 bool Parser::IsInIdFollowSet(TokenTag tag) {
   // id, id; id= id( id[
   return tag == TokenTag::COMMA || tag == TokenTag::SEMICON || tag == TokenTag::ASSIGN || tag == TokenTag::LPAREN || tag == TokenTag::LBRACK;
+}
+
+bool Parser::IsInLbraceFollowSet(TokenTag tag) {
+  // 能跟在{号后的，有变量定义(type开始)、语句开始（FIRST集）
+  return  tag == TokenTag::RBRACE || IsInStatementFirstSet(tag) || IsInTypeFirstSet(tag);
+}
+
+bool Parser::IsInRbraceFollowSet(TokenTag tag) {
+  // 能跟在}号后的，变量定义、语句、;号等
+  return IsInTypeFirstSet(tag) || IsInStatementFirstSet(tag) || tag == TokenTag::LBRACE || tag == TokenTag::KW_EXTERN
+         || tag == TokenTag::KW_ELSE || tag == TokenTag::KW_CASE || tag == TokenTag::KW_DEFAULT;
+}
+
+bool Parser::IsInStatementFirstSet(TokenTag tag) { // 语句的first集
+  return tag == TokenTag::SEMICON || tag == TokenTag::KW_WHILE || tag == TokenTag::KW_FOR
+         || tag == TokenTag::KW_DO || tag == TokenTag::KW_IF || tag == TokenTag::KW_SWITCH
+         || tag == TokenTag::KW_RETURN || tag == TokenTag::KW_BREAK || tag == TokenTag::KW_CONTINUE
+         || IsInExpressionsFirstSet(tag);
+}
+
+bool Parser::IsInExpressionsFirstSet(TokenTag tag) { // 表达式first集
+  return tag == TokenTag::LPAREN || tag == TokenTag::NUM || tag == TokenTag::CH
+         || tag == TokenTag::STR || tag == TokenTag::ID || tag == TokenTag::NOT
+         || tag == TokenTag::SUB || tag == TokenTag::MUL || tag == TokenTag::INC
+         || tag == TokenTag::DEC;
+}
+
+bool IsInTypeFirstSet(TokenTag tag) { // 类型定义first集
+  return tag == TokenTag::KW_INT || tag == TokenTag::KW_CHAR || tag == TokenTag::KW_VOID;
 }

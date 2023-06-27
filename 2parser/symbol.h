@@ -22,7 +22,7 @@ public:
   vector<int> GetScopePath() { return scopePath; }
   string GetValStr(); // 将value值转换成string
   void SetOffset(int offVal) { offset = offVal; }// 设置栈偏移量
-  void Print(Printer &p);
+  // void Print(Printer &p);
   string ToString();
 
   // public 变量
@@ -40,6 +40,8 @@ private:
   void SetPtr(bool isPtr);
   void SetName(string nm);
   void SetArray(int length);
+  void SetLeft(bool isLeft) { isLeft = isLeft; }
+  bool GetLeft() { return isLeft; }
 
   /*变量*/
   bool isExterned; // 记录是否有extern关键字
@@ -82,12 +84,14 @@ public:
   void Locate(SymValue *v); //定位局部栈帧偏移
 
   bool IsActualArgsMatch2FormalArgs(vector<SymValue *> &args); // 形参与实参匹配
-  void Print(Printer &p);
+  // void Print(Printer &p);
   string ToString();
 
   void SetExterned(bool ext) { isExterned = ext; }
-  void GetExterned() { return isExterned; }
+  bool GetExterned() { return isExterned; }
 	void MatchToDefine(SymFunc *defFunc); // 将函数声明匹配到c文件的函数定义，需要拷贝参数列表，设定extern
+  string GetName() { return name; }
+  vector<SymValue *> &GetArgs() { return paramVarList; }
 
   // IR
   void SetStackMaxDepth(int dep); // 设置栈帧最大深度

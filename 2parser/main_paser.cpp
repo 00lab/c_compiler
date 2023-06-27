@@ -11,10 +11,8 @@ int main(int argc, char **argv)
   }
   Scanner sc(argv[1]);
   Lexer lex(sc);
-  Parser paser(lex);
-  Token &t = *(lex.GetNextToken());
-  while (t.tag != TokenTag::END) {
-    LOG_INFO(t.ToString().c_str());
-    t = *(lex.GetNextToken());
-  }
+  SymbolTable symTab;
+  Parser parser(lex, sc, symTab);
+  parser.Analysis();
+  symTab.Print();
 }

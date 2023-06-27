@@ -7,9 +7,10 @@ target_include_directories(
     parser_lib
     PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}
-    ${CMAKE_CURRENT_SOURCE_DIR}/../0common)
+    ${CMAKE_CURRENT_SOURCE_DIR}/../0common
+    ${CMAKE_CURRENT_SOURCE_DIR}/../1lexer)
 
-target_link_libraries(parser_lib PUBLIC -Wl,-rpath-link=${DEPEND_LIB_PATH} common_lib)
+target_link_libraries(parser_lib PUBLIC -Wl,-rpath-link=${DEPEND_LIB_PATH} common_lib lexer_lib)
 
 # # make intall行为
 #install(TARGETS lexer_lib RUNTIME DESTINATION lib)
@@ -23,8 +24,9 @@ target_include_directories(
     parser_bin
     PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}
-    ${CMAKE_CURRENT_SOURCE_DIR}/../0common)
+    ${CMAKE_CURRENT_SOURCE_DIR}/../0common
+    ${CMAKE_CURRENT_SOURCE_DIR}/../1lexer)
 # set(CMAKE_CXX_FLAGS "-static ${CMAKE_CXX_FLAGS}")
-target_link_libraries(parser_bin PUBLIC -Wl,-rpath-link=${DEPEND_LIB_PATH} -Wl,-Bdynamic common_lib lexer_lib)
+target_link_libraries(parser_bin PUBLIC -Wl,-rpath-link=${DEPEND_LIB_PATH} -Wl,-Bdynamic common_lib lexer_lib parser_lib)
 
 install(TARGETS parser_bin RUNTIME DESTINATION bin)

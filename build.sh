@@ -98,9 +98,9 @@ else
 fi
 
 OUTPUT_PATH="${BASE_PATH}/output/"
-if [[ "X${DEBUG_MODE}" = "Xon" ]]; then
-    OUTPUT_PATH="${BASE_PATH}/output_debug/"
-fi
+# if [[ "X${DEBUG_MODE}" = "Xon" ]]; then
+#     OUTPUT_PATH="${BASE_PATH}/output_debug/"
+# fi
 
 
 echo "build start"

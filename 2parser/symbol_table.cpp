@@ -37,7 +37,7 @@ SymbolTable::~SymbolTable() {
   // 清除变量表
   unordered_map<string, vector<SymValue *> *>::iterator varTabIt = variableTable.begin();
   for (; varTabIt != variableTable.end(); ++varTabIt) {
-    vector<SymValue *> &vList = varTabIt->second;
+    vector<SymValue *> &vList = *varTabIt->second;
     for (int i = 0; i < vList.size(); ++i) {
       delete vList[i];
     }
@@ -67,7 +67,7 @@ void SymbolTable::LeaveCurrScope() { // 离开局部作用域
 }
 
   // 变量管理， 散列表方式管理
-SymbolTable::AddSymVal(SymValue *v) { // 添加一变量 到符号表
+void SymbolTable::AddSymVal(SymValue *v) { // 添加一变量 到符号表
   if (variableTable.find(v->GetName()) == variableTable.end()) { // 没有找到同名变量则新增
     variableTable[v->GetName()] = new vector<SymValue *>; // 创建一个链表，以备后面存放同名变量
     variableTable[v->GetName()]->push_back(v);
@@ -76,7 +76,7 @@ SymbolTable::AddSymVal(SymValue *v) { // 添加一变量 到符号表
     vector<SymValue *> &sameVarList = *variableTable[v->GetName()]; // 取出已在map中的同名变量列表
     int i = 0;
     for (; i < sameVarList.size(); ++i) {
-      if (sameVarList[i].GetScopePath().back() == v->GetScopePath().back()) break; // 找到了说明在同一个作用域，命名冲突
+      if (sameVarList[i]->GetScopePath().back() == v->GetScopePath().back()) break; // 找到了说明在同一个作用域，命名冲突
     }
     if (i == sameVarList.size() || v->GetName()[0] == '<') { // 同名变量但作用域不冲突，或者当前变量是匿名临时变量
       sameVarList.push_back(v); // 则直接添加
@@ -119,7 +119,7 @@ vector<SymValue *> SymbolTable::GetGlobalVars() { // 获取所有全局变量
   for (int i = 0; i < variableList.size(); ++i) {
     string vName = variableList[i];
     if (vName[0] == '<') continue; // 常量，不添加
-    vector<SymValue *> &vList = *variableTable[varName];
+    vector<SymValue *> &vList = *variableTable[vName];
     for (int j = 0; j < vList.size(); ++j) {
       if (vList[j]->GetScopePath().size() == SCOPE_PATH_SIZE_GLOBAL) { // 全局变量
         globalV.push_back(vList[j]);
@@ -140,7 +140,7 @@ void SymbolTable::AddDecFunc(SymFunc *func) { // 添加函数声明
   } else {
     // 否则存在重名函数，如果参数不匹配，可能是声明与定义不匹配，如果参数匹配，则报重复声明错误
     SymFunc *tmpFunc = functionTable[func->GetName()];
-    if (!tmpFunc->IsActualArgsMatch2FormalArgs(func)) {
+    if (!tmpFunc->IsActualArgsMatch2FormalArgs(func->GetArgs())) {
       // TODO: 报语义错误
       LOG_ERR("函数声明与定义不匹配：%s", func->GetName());
     } else {
@@ -166,7 +166,7 @@ void SymbolTable::AddDefFunc(SymFunc *func) { // 添加函数定义
       // TODO 语义错误
       LOG_ERR("函数重复定义：%s", func->GetName());
     } else {
-      if (!tmpFunc->IsActualArgsMatch2FormalArgs(func)) {
+      if (!tmpFunc->IsActualArgsMatch2FormalArgs(func->GetArgs())) {
         // TODO: 报语义错误
         LOG_ERR("函数声明与定义不匹配：%s", func->GetName());
       }
@@ -188,7 +188,7 @@ void SymbolTable::AddDefFuncEnd() { // 函数定义结束位置
 SymFunc *SymbolTable::GetSymFunc(string funcName, vector<SymValue *> &args) { // 根据调用类型，获取一个函数
   if (functionTable.find(funcName) != functionTable.end()) {
     SymFunc *tmpFunc = functionTable[funcName];
-    if (!tmpFunc->IsActualArgsMatch2FormalArgs(func)) {
+    if (!tmpFunc->IsActualArgsMatch2FormalArgs(args)) {
       // TODO 语义报错
       LOG_ERR("函数调用实参与形参不匹配：%s", funcName);
       return nullptr;
@@ -202,14 +202,14 @@ SymFunc *SymbolTable::GetSymFunc(string funcName, vector<SymValue *> &args) { //
 
 // TODO add IR
 
-void SymbolTable::ToString() {
+void SymbolTable::Print() {
   LOG_INFO("#####变量表#####");
   for (int i = 0; i < variableList.size(); ++i) {
     string varName = variableList[i];
-    vector<SymFunc *> &vList = *variableTable[varName];
+    vector<SymValue *> &vList = *variableTable[varName];
     LOG_INFO("name=%s:", varName);
     for (int j = 0; j < vList.size(); ++j) {
-      LOG_INFO("\t%d: %s:", j, vList[j].ToString());
+      LOG_INFO("\t%d: %s:", j, vList[j]->ToString().c_str());
     }
   }
   LOG_INFO("#####字符串表#####");
@@ -219,11 +219,8 @@ void SymbolTable::ToString() {
   }
   LOG_INFO("#####函数表#####");
   for (int i = 0; i < functionList.size(); ++i) {
-    string varName = variableList[i];
-    vector<SymFunc *> &vList = *variableTable[varName];
-    LOG_INFO("name=%s:", varName);
-    for (int j = 0; j < vList.size(); ++j) {
-      LOG_INFO("\t%d: %s:", j, vList[j].ToString());
-    }
+    string funcName = functionList[i];
+    LOG_INFO("Function=%s:", funcName);
+    LOG_INFO("\t%s", functionTable[funcName]->ToString().c_str());
   }
 }

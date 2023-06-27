@@ -1,6 +1,6 @@
 #include "parser.h"
 
-void Parser::SyntaxErrLog(SyntaxErr errTypeCode, TokenTag *t)
+void Parser::SyntaxErrLog(SyntaxErr errTypeCode, Token *t)
 {
   //语法错误信息串
   static const char *synErrInfo[]=
@@ -22,13 +22,12 @@ void Parser::SyntaxErrLog(SyntaxErr errTypeCode, TokenTag *t)
     "}"
   };
   int index = static_cast<int>(errTypeCode);
-  const char *srcFileInfoStr = scan.GetSrcFileScanInfo().c_str()
-  if(index % 2 == 0) {// 表示Token丢失
-    CodeErrInfo::GetThis().SyntaxErr(srcFileInfoStr, "语法错误 : 在 %s 之前丢失 %s", t->toString().c_str(), synErrorTable[index / 2]);
+  const char *srcFileInfoStr = scan.GetSrcFileScanInfo().c_str();
+  if (index % 2 == 0) { // 表示Token丢失
+    CodeErrInfo::GetThis().SyntaxErr(srcFileInfoStr, "语法错误 : 在 %s 之前丢失 %s", t->ToString().c_str(), synErrInfo[index / 2]);
   } else {// 表示符号匹配措施
-    CodeErrInfo::GetThis().SyntaxErr(srcFileInfoStr, "语法错误 : 在 %s 处没有正确匹配 %s", t->toString().c_str(), synErrorTable[index / 2]);
+    CodeErrInfo::GetThis().SyntaxErr(srcFileInfoStr, "语法错误 : 在 %s 处没有正确匹配 %s", t->ToString().c_str(), synErrInfo[index / 2]);
   }
-
 }
 
 /*
@@ -89,8 +88,8 @@ void Parser::AnalySegment() {
   bool isExt = currToken->tag == TokenTag::KW_EXTERN;
   if (isExt) { ReadToken(); } // 若匹配成功extern关键字，则读入下一个前看Token
   // 随后，无论是变量还是函数，必然是一个类型type，如果不是type则报错
-  MatchType();
-  MatchDefSyntax(isExt);
+  TokenTag type = MatchType();
+  MatchDefSyntax(isExt, type);
 }
 
 /*
@@ -163,7 +162,7 @@ void Parser::MatchDefSyntax(bool isExtern, TokenTag typeTag) {
   }
   // 函数或者变量
   if (currToken->tag == TokenTag::ID) {
-    name = static_cast<TokenId *>(currToken)->idName;
+    name = static_cast<TokenId *>(currToken)->name;
     ReadToken();
     // 不是左括号(, 则确定是变量
     if (currToken->tag != TokenTag::LPAREN) {
@@ -173,11 +172,11 @@ void Parser::MatchDefSyntax(bool isExtern, TokenTag typeTag) {
       return;
     }
     // 否则是函数
-    symtab.EnterNewScope();
+    symTab.EnterNewScope();
     vector<SymValue *> args;//参数列表
     ;// TODO 匹配参数列表，暂只支持无参函数
     ReadToken();
-    if(currToken->tag == TokenTag::RPAREN) {
+    if(currToken->tag != TokenTag::RPAREN) {
       bool isInFollowSet = currToken->tag == TokenTag::LBRACK || currToken->tag == TokenTag::SEMICON;
       Parser::ErrRecovery(isInFollowSet, SyntaxErr::RPAREN_LOST, SyntaxErr::RPAREN_WRONG);
       return;
@@ -185,29 +184,30 @@ void Parser::MatchDefSyntax(bool isExtern, TokenTag typeTag) {
     SymFunc* func=new SymFunc(isExtern, typeTag, name, args);
     ReadToken();
     if (currToken->tag == TokenTag::SEMICON) { // 如果匹配到分号；则是函数声明
-      symtab.AddDecFunc(func);
+      symTab.AddDecFunc(func);
     } else { // 否则是函数定义
-      symtab.AddDefFunc(func);
+      symTab.AddDefFunc(func);
       MatchFunctionBlock();
-      symtab.AddDefFuncEnd();
+      symTab.AddDefFuncEnd();
     }
-    symtab.LeaveCurrScope();
+    symTab.LeaveCurrScope();
     return;
   }
   Parser::ErrRecovery(IsInIdFollowSet(currToken->tag), SyntaxErr::ID_LOST, SyntaxErr::ID_WRONG);
 }
 
 void Parser::MatchFunctionBlock() {
-  if (!currToken->tag == TokenTag::LBRACE) {
+  if (!(currToken->tag == TokenTag::LBRACE)) {
     // 没有匹配到左大括号，报错
-    ErrRecovery(IsInLbraceFollowSet(currToken->tag), LBRACE_LOST, LBRACE_WRONG);
+    ErrRecovery(IsInLbraceFollowSet(currToken->tag), SyntaxErr::LBRACE_LOST, SyntaxErr::LBRACE_WRONG);
   }
   ReadToken();
   MatchFunctionSubProgram();
-  if (!currToken->tag == TokenTag::RBRACE) {
+  if (currToken->tag != TokenTag::RBRACE) {
     // 没有匹配到右大括号，报错
-    ErrRecovery(IsInRbraceFollowSet(currToken->tag), RBRACE_LOST, RBRACE_WRONG);
+    ErrRecovery(IsInRbraceFollowSet(currToken->tag), SyntaxErr::RBRACE_LOST, SyntaxErr::RBRACE_WRONG);
   }
+  ReadToken(); // 匹配一个函数体结束，前看下一个符号
 }
 
 void Parser::MatchFunctionSubProgram() { // 匹配函数内的变量、语句、函数调用等
@@ -221,15 +221,20 @@ void Parser::MatchFunctionSubProgram() { // 匹配函数内的变量、语句、
   } else {
     // 报错
   }
-  // 匹配完一个继续递归匹配下一个
+  if (currToken->tag == TokenTag::RBRACE) {
+    // ReadToken();
+    return;
+  }
+  // 匹配完一个语句块则继续递归匹配下一个
   MatchFunctionSubProgram();
 }
 
 SymValue *Parser::MatchVariableInit(bool isExtern, TokenTag typeTag, bool isPtr, string name) { // 匹配变量（含指针）的初始化
   SymValue *v = nullptr;
-  ReadToken();
+  // ReadToken();
   if (currToken->tag == TokenTag::ASSIGN) {
-    ;// TODO 如果下一个是=号，则有赋值表达式
+    ReadToken();// TODO 如果下一个是=号，则有赋值表达式
+    v = MatchAssignExpression();
   }
   // 如果没有赋值表达式，则是定义未初始化的变量
   return new SymValue(symTab.GetScopePath(), isExtern, typeTag, isPtr, name, v);
@@ -249,7 +254,7 @@ SymValue *Parser::MatchVariableDefine(bool isExtern, TokenTag typeTag, bool isPt
 SymValue *Parser::MatchVariableStatement(bool isExtern, TokenTag typeTag) { // 匹配变量语句体
   string name = "";
   if (currToken->tag == TokenTag::ID) { // 普通变量
-    name = static_cast<TokenId *>(currToken)->idName;
+    name = static_cast<TokenId *>(currToken)->name;
     ReadToken();
     return MatchVariableDefine(isExtern, typeTag, false, name);
   } else if (currToken->tag == TokenTag::MUL) { // 匹配看是不是指针
@@ -259,7 +264,7 @@ SymValue *Parser::MatchVariableStatement(bool isExtern, TokenTag typeTag) { // �
       // *后的follow集是=号、分号(;)、逗号(,)，如果当前是这其中一个，则表示标识符缺失，否则是写错了等语法错误
       Parser::ErrRecovery(IsInIdFollowSet(currToken->tag), SyntaxErr::ID_LOST, SyntaxErr::ID_WRONG);
     }
-    name = static_cast<TokenId *>(currToken)->idName;
+    name = static_cast<TokenId *>(currToken)->name;
     return MatchVariableInit(isExtern, typeTag, true, name);
   }
   Parser::ErrRecovery(IsInIdFollowSet(currToken->tag), SyntaxErr::ID_LOST, SyntaxErr::ID_WRONG);
@@ -273,6 +278,7 @@ void Parser::MatchVarCommaOrSemicon(bool isExtern, TokenTag typeTag) {
     ;// TODO 如果是逗号，则是逗号(,)分割的多个变量，继续匹配
     MatchVarCommaOrSemicon(isExtern, typeTag);
   } else if (currToken->tag == TokenTag::SEMICON) {
+    ReadToken();
     return; // 匹配到分号，语句结束
   } else { // 如果是其他，则报错
     bool isInFollowSet = currToken->tag == TokenTag::ID || currToken->tag == TokenTag::MUL;
@@ -294,6 +300,39 @@ void Parser::MatchVarCommaOrSemicon(bool isExtern, TokenTag typeTag) {
       Parser::ErrRecovery(isInFollowSet, SyntaxErr::SEMICON_LOST, SyntaxErr::SEMICON_WRONG); // 分号缺失或出错
     }
   }
+}
+
+SymValue *Parser::MatchAssignExpression() { // 匹配赋值表达式
+  // 给变量赋值，=号右边可能出现的表达式非常复杂，先支持简单的常量赋值、变量给变量赋值、函数返回值赋值
+  SymValue *v = nullptr;
+  if (currToken->tag == TokenTag::ID) {
+    string name = static_cast<TokenId *>(currToken)->name;
+    ReadToken();
+    if (currToken->tag == TokenTag::LPAREN) {
+      // TODO 暂时支持无参函数
+      vector<SymValue *> args;
+      // 匹配参数
+      ReadToken();
+      if (currToken->tag != TokenTag::RPAREN) { // 右括号缺失
+        ErrRecovery(IsInRbraceFollowSet(currToken->tag), SyntaxErr::SEMICON_LOST, SyntaxErr::SEMICON_WRONG);
+      }
+      SymFunc *func = symTab.GetSymFunc(name, args);
+      // TODO 添加ir后，此处应返回一个临时变量，该变量是func的返回值
+      return v;
+    }
+  } else if (IsInLiteralFirstSet(currToken->tag)) {
+    v = new SymValue(currToken); // 新建一个字面量
+    if (currToken->tag == TokenTag::STR) {
+      symTab.AddSymStr(v);
+    } else {
+      symTab.AddSymVal(v);
+    }
+    // ReadToken();
+    MatchVarCommaOrSemicon(false, currToken->tag);
+  } else {
+    LOG_ERR("还不支持的语法: %u", static_cast<UINT32>(currToken->tag));
+  }
+  return v;
 }
 
 bool Parser::IsInIdFollowSet(TokenTag tag) {
@@ -326,6 +365,10 @@ bool Parser::IsInExpressionsFirstSet(TokenTag tag) { // 表达式first集
          || tag == TokenTag::DEC;
 }
 
-bool IsInTypeFirstSet(TokenTag tag) { // 类型定义first集
+bool Parser::IsInTypeFirstSet(TokenTag tag) { // 类型定义first集
   return tag == TokenTag::KW_INT || tag == TokenTag::KW_CHAR || tag == TokenTag::KW_VOID;
+}
+
+bool Parser::IsInLiteralFirstSet(TokenTag tag) { // 字面量，当前支持数字、字符串、字符，后可加支持浮点数
+  return tag == TokenTag::NUM || tag == TokenTag::STR || tag == TokenTag::CH;
 }

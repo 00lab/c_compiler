@@ -55,12 +55,20 @@ private:
   TokenTag MatchType(); // 分析匹配类型
   void MatchDefSyntax(bool isExtern, TokenTag typeTag); // 分析类型后可能跟随的函数声明、函数定义、变量定义等
   SymValue *MatchVariableInit(bool isExtern, TokenTag typeTag, bool isPtr, string name); // 匹配变量（含指针）的初始化
-  SymValue *MatchVariableDefine(bool isExtern, TokenTag typeTag, bool isPtr, string name); // 匹配变量与数组定义
+  SymValue *MatchVariableDefine(bool isExtern, TokenTag typeTag, bool isPtr, string name); // 匹配变量与数组定义体，赋初值
+  SymValue *MatchVariableStatement(bool isExtern, TokenTag typeTag); // 匹配变量语句体
   void MatchVarCommaOrSemicon(bool isExtern, TokenTag typeTag); // 匹配变量的逗号(,)、分号(;)
+  void MatchFunctionBlock(); // 匹配函数块
+  void MatchFunctionSubProgram(); // 匹配函数内的变量、语句、函数调用等
   void SyntaxErrLog(SyntaxErr errTypeCode, TokenTag *t);
   void ErrRecovery(bool isInFollowSet, SyntaxErr lostSyntaxErr, SyntaxErr wrongSyntaxErr);
 
   bool IsInIdFollowSet(TokenTag tag);
+  bool IsInLbraceFollowSet(TokenTag tag);
+  bool IsInRbraceFollowSet(TokenTag tag);
+  bool IsInStatementFirstSet(TokenTag tag); // 语句的first集
+  bool IsInExpressionsFirstSet(TokenTag tag); // 表达式first集
+  bool IsInTypeFirstSet(TokenTag tag); // 类型定义first集
 
   /*---------私有变量-----------*/
   Scanner &scan; // 用于获得当前源文件的信息

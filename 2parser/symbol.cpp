@@ -1,6 +1,7 @@
 #include <vector>
 #include <unordered_map>
 #include <string>
+#include <sstream>
 #include "lexer.h"
 #include "token.h"
 #include "common.h"
@@ -12,14 +13,14 @@ SymValue::SymValue() {
   Clear();
   SetName(VAL_NAME_VOID);//特殊变量名字
   SetLeft(false);
-  SetVarType(TokenTag::KW_VOID);
+  type == TokenTag::KW_VOID;
   intValue = 0;
   isLiteral = false;
   isPtr = false;
 }
 
 SymValue::SymValue(int val) { // 整数字面量变量
-  clear();
+  Clear();
   SetName(VAL_NAME_INT); // 特殊变量名字
   SetLeft(false);
   SetVarType(TokenTag::KW_INT);
@@ -28,8 +29,8 @@ SymValue::SymValue(int val) { // 整数字面量变量
   isPtr = false;
 }
 
-SymValue::SymValue(Token *literalPtr); { // 常量，字符串常量存放在字符串表中，其他用完删除
-  clear();
+SymValue::SymValue(Token *literalPtr) { // 常量，字符串常量存放在字符串表中，其他用完删除
+  Clear();
   SetLeft(false);
   isLiteral = true;
   if (literalPtr->tag == TokenTag::NUM) {
@@ -58,7 +59,7 @@ SymValue::SymValue(Token *literalPtr); { // 常量，字符串常量存放在字
 }
 
 //  初始化变量、指针
-SymValue::SymValue(vector<int> scopePath, bool isExtern, TokenTag varType, bool isPtr, string name, SymValue *init = nullptr) { // 普通变量
+SymValue::SymValue(vector<int> scopePath, bool isExtern, TokenTag varType, bool isPtr, string name, SymValue *init) { // 普通变量
   Clear();
   this->scopePath = scopePath;
   SetExtern(isExtern);
@@ -114,7 +115,7 @@ void SymValue::SetVarType(TokenTag type) {
   this->type = type;
   if (type == TokenTag::KW_VOID) {
     // 语义分析报错：不能是void 类型变量
-    LOG_ERR("语义错误, 变量不能是void类型: %s", type);
+    LOG_ERR("语义错误, 变量不能是void类型: %u", static_cast<UINT32>(type));
     type = TokenTag::KW_INT; // 设置默认为int类型
   }
   if (!isExterned && type == TokenTag::KW_INT) varSize = SIZE_INT;
@@ -129,7 +130,7 @@ void SymValue::SetPtr(bool isPtr) {
 }
 
 void SymValue::SetName(string nm) {
-  if (nm == '') {
+  if (nm == "") {
     nm = "default"; // TODO 如果没有名字，则生成一个
   }
   name = nm;
@@ -138,7 +139,7 @@ void SymValue::SetName(string nm) {
 void SymValue::SetArray(int length) {
   if (length <= 0) {
     // TODO 报语义错误，数组长度小于等于0
-    return
+    return;
   }
   isArray = true;
   isLeft = true; // 数组是左值
@@ -148,20 +149,22 @@ void SymValue::SetArray(int length) {
   }
 }
 
-void SymValue::Print(Printer &p) {
-  p << IncCurrentIndent();
-  p << ToString() << NewLine();
-  p << DecCurrentIndent();
-}
+// void SymValue::Print(Printer &p) {
+//   p.IncCurrentIndent();
+//   p << ToString() << p.NewLine();
+//   p.DecCurrentIndent();
+// }
 
 string SymValue::ToString() {
-  string ret = TokenTagName[type] + string(" ") + name + string(" ");
+  string ret = string((const char *)TokenTagName[static_cast<UINT32>(type)]) + string(" ") + name + string(" ");
   if (type == TokenTag::STR) {
     ret += strValue;
   } else if (type == TokenTag::CH) {
-    ret += string(charValue);
+    ret.append((const char *)&charValue);
   } else {
-    ret += string(intValue);
+    stringstream ss;
+    ss << intValue;
+    ret += ss.str();
   }
   return ret;
 }
@@ -178,7 +181,6 @@ SymFunc::SymFunc(bool isExtern, TokenTag reType, string name, vector<SymValue *>
   relocated = false;
   // TODO dfg=NULL;
 }
-SymFunc::~SymFunc();
 
 // 作用域管理，局部变量地址计算
 void SymFunc::EnterScope() { // 进入新的作用域
@@ -207,14 +209,14 @@ bool SymFunc::IsActualArgsMatch2FormalArgs(vector<SymValue *> &args) {
   return true;
 }
 
-void SymFunc::Print(Printer &p) {
-  p << IncCurrentIndent();
-  p << ToString() << NewLine();
-  p << DecCurrentIndent();
-}
+// void SymFunc::Print(Printer &p) {
+//   p.IncCurrentIndent();
+//   p << ToString() << p.NewLine();
+//   p.DecCurrentIndent();
+// }
 
 string SymFunc::ToString() {
-  string ret = TokenTagName[reType] + " " + name + " ( ";
+  string ret = string((const char *)TokenTagName[static_cast<UINT32>(reType)]) + " " + name + " ( ";
   for(int i = 0; i < paramVarList.size(); i++) {
     ret += paramVarList[i]->ToString();
     if( i != paramVarList.size() - 1) ret += ",";
@@ -223,7 +225,9 @@ string SymFunc::ToString() {
   if (isExterned) {
     ret += " ;\n";
   } else {
-    ret += " maxStack=" + string(maxStackDepth) + "\n";
+    stringstream ss;
+    ss << maxStackDepth;
+    ret += " maxStack=" + ss.str() + "\n";
   }
   return ret;
 }
@@ -231,7 +235,7 @@ string SymFunc::ToString() {
 // 将函数声明匹配到c文件的函数定义，需要拷贝参数列表，设定extern
 void SymFunc::MatchToDefine(SymFunc *defFunc) {
   isExterned = false;
-  paramVarList = def->paraVar; // 拷贝参数
+  paramVarList = defFunc->paramVarList; // 拷贝参数
 }
 
 // IR

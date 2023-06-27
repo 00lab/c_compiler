@@ -22,6 +22,8 @@ endif()
 link_directories(${OUTPUT_DIR}/lib/)
 include_directories(${BUILD_DIR}/0common/)
 include_directories(${BUILD_DIR}/1lexer/)
+include_directories(${BUILD_DIR}/2parser/)
 
 add_subdirectory(${ROOT_DIR}/0common)
 add_subdirectory(${ROOT_DIR}/1lexer)
+add_subdirectory(${ROOT_DIR}/2parser)

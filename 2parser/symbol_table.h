@@ -8,6 +8,7 @@
 #include "token.h"
 #include "common.h"
 #include "log.h"
+#include "symbol.h"
 
 class SymbolTable {
 public:
@@ -34,7 +35,7 @@ public:
 
   vector<int>& GetScopePath() { return scopePath; } // 获取作用域path, -1全局，0 main函数
   SymFunc *GetCurrFunc() { return currFunc; } // 获取当前正在分析的函数
-  void ToString();
+  void Print();
 
 private:
   /*变量*/
